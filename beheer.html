@@ -873,8 +873,30 @@ function upd(i, veld, waarde) {
 function slaOp(i) {
   opslaan();
   const ok = document.getElementById("ok-" + i);
-  if (ok) { ok.style.display = "flex"; setTimeout(() => ok.style.display = "none", 2500); }
+  if (ok) {
+    ok.textContent = '⏳ Publiceren...';
+    ok.style.display = "flex";
+    ok.style.background = "#fff3cd";
+    ok.style.borderLeftColor = "#e6960a";
+    ok.style.color = "#7a5000";
+  }
   tellingen();
+  publiceerNaarGitHub().then(succes => {
+    if (ok) {
+      if (succes) {
+        ok.textContent = '✓ Direct zichtbaar op cursistenpagina';
+        ok.style.background = "#e6f4ed";
+        ok.style.borderLeftColor = "#1a7a4a";
+        ok.style.color = "#1a7a4a";
+      } else {
+        ok.textContent = '⚠ Opgeslagen maar publiceren mislukt';
+        ok.style.background = "#faeaea";
+        ok.style.borderLeftColor = "#b52a2a";
+        ok.style.color = "#b52a2a";
+      }
+      setTimeout(() => { ok.style.display = "none"; ok.removeAttribute("style"); }, 4000);
+    }
+  });
 }
 
 function voegToe() {
@@ -900,6 +922,43 @@ function opslaan() {
   const s = JSON.parse(JSON.stringify(data));
   Object.keys(s).forEach(r => s[r].forEach(b => delete b._open));
   localStorage.setItem("jslf_data", JSON.stringify(s));
+}
+
+
+function getToken() {
+  let t = localStorage.getItem('jslf_gh_token');
+  if (!t) {
+    t = prompt('Voer eenmalig je GitHub token in om direct te publiceren:');
+    if (t) localStorage.setItem('jslf_gh_token', t);
+  }
+  return t;
+}
+
+async function publiceerNaarGitHub() {
+  const s = JSON.parse(JSON.stringify(data));
+  Object.keys(s).forEach(r => s[r].forEach(b => delete b._open));
+  const jsonTekst = JSON.stringify(s, null, 2);
+  const tok = getToken();
+  if (!tok) return false;
+  try {
+    let sha = null;
+    const check = await fetch('https://api.github.com/repos/JSLegalForce/wvsv-platform/contents/data.json', {
+      headers: { 'Authorization': 'token ' + tok }
+    });
+    if (check.ok) { const dd = await check.json(); sha = dd.sha; }
+    const bytes = new TextEncoder().encode(jsonTekst);
+    let bin = ''; const chunk = 8192;
+    for (let i = 0; i < bytes.length; i += chunk) bin += String.fromCharCode(...bytes.slice(i, i + chunk));
+    const b64 = btoa(bin);
+    const body = { message: 'Bevoegdheden bijgewerkt', content: b64 };
+    if (sha) body.sha = sha;
+    const resp = await fetch('https://api.github.com/repos/JSLegalForce/wvsv-platform/contents/data.json', {
+      method: 'PUT',
+      headers: { 'Authorization': 'token ' + tok, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    return resp.ok;
+  } catch(e) { return false; }
 }
 
 function exporteer() {
