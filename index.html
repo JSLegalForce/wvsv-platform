@@ -97,13 +97,16 @@ body{font-family:'Outfit',sans-serif;background:var(--achtergrond);color:var(--t
 .tab-inhoud.actief{display:block;}
 
 /* Artikeltekst kolommen */
-.art-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.art-grid{display:grid;grid-template-columns:3fr 2fr;gap:14px;}
 @media(max-width:600px){.art-grid{grid-template-columns:1fr;}}
 .art-col{background:var(--achtergrond);border-radius:9px;overflow:hidden;border:1px solid var(--grijs-mid);}
 .art-col-kop{font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;padding:8px 13px;border-bottom:1px solid var(--grijs-mid);}
 .art-col-kop.oud{color:var(--tekst-mid);}
 .art-col-kop.nieuw{color:var(--blauw-licht);}
-.art-col-tekst{padding:13px 15px;font-size:0.9rem;line-height:1.75;color:var(--tekst);white-space:pre-wrap;}
+.art-col-tekst{padding:14px 16px;font-size:0.9rem;color:var(--tekst);}
+.wet-lid{line-height:1.8;margin-bottom:10px;text-indent:-1.4em;padding-left:1.4em;}
+.wet-lid:last-child{margin-bottom:0;}
+.art-col-tekst.leeg{color:var(--zilver);font-style:italic;}
 .art-col-tekst.leeg{color:var(--zilver);font-style:italic;}
 
 /* Uitleg blok */
@@ -306,13 +309,13 @@ function kaartHTML(b, i) {
     </div>
     <div class="tab-inhoud actief" data-tab="artikeltekst">
       <div class="art-grid">
-        <div class="art-col">
-          <div class="art-col-kop oud">Oud WvSv${b.artikel ? " – "+e(b.artikel)+" (oud)" : ""}</div>
-          <div class="art-col-tekst${b.oud ? "" : " leeg"}">${b.oud ? e(b.oud) : "Dit artikel bestond niet in het oude wetboek."}</div>
-        </div>
-        <div class="art-col">
+        <div class="art-col art-col-nieuw">
           <div class="art-col-kop nieuw">Nieuw WvSv${b.artikel ? " – "+e(b.artikel) : ""}</div>
-          <div class="art-col-tekst${b.nieuw ? "" : " leeg"}">${b.nieuw ? e(b.nieuw) : "Nog geen tekst ingevoerd."}</div>
+          <div class="art-col-tekst${b.nieuw ? "" : " leeg"}">${b.nieuw ? wetTekst(b.nieuw) : "Nog geen tekst ingevoerd."}</div>
+        </div>
+        <div class="art-col art-col-oud">
+          <div class="art-col-kop oud">Oud WvSv${b.artikel ? " – "+e(b.artikel)+" (oud)" : ""}</div>
+          <div class="art-col-tekst${b.oud ? "" : " leeg"}">${b.oud ? wetTekst(b.oud) : "Dit artikel bestond niet in het oude wetboek."}</div>
         </div>
       </div>
     </div>
@@ -330,6 +333,20 @@ function switchTab(btn) {
   const tab    = btn.dataset.tab;
   detail.querySelectorAll(".tab-btn").forEach(b => b.classList.toggle("actief", b.dataset.tab===tab));
   detail.querySelectorAll(".tab-inhoud").forEach(p => p.classList.toggle("actief", p.dataset.tab===tab));
+}
+
+function wetTekst(tekst) {
+  // Splits op genummerde leden (1., 2., 3. etc) en geeft ze elk een eigen regel met styling
+  const regels = tekst.split('\n').filter(r => r.trim());
+  if (regels.length <= 1) {
+    // Probeer te splitsen op patroon "1. " "2. " etc
+    const delen = tekst.split(/(?=\d+\. )/g).filter(d => d.trim());
+    if (delen.length > 1) {
+      return delen.map(d => `<p class="wet-lid">${e(d.trim())}</p>`).join('');
+    }
+    return `<p class="wet-lid">${e(tekst)}</p>`;
+  }
+  return regels.map(r => `<p class="wet-lid">${e(r.trim())}</p>`).join('');
 }
 
 function e(s) {
