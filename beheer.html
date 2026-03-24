@@ -416,6 +416,14 @@ body {
 .veld textarea.klein { min-height: 72px; }
 .veld input.smal { max-width: 200px; }
 
+.oud-sectie-header{display:flex;align-items:center;justify-content:space-between;padding:14px 0 10px;margin-top:6px;border-top:2px solid var(--grijs-mid);}
+.oud-sectie-titel{display:flex;align-items:center;gap:8px;font-size:0.8rem;font-weight:700;color:var(--zilver);text-transform:uppercase;letter-spacing:0.1em;}
+.oud-sectie-nr{background:var(--zilver);color:var(--wit);font-size:0.65rem;font-weight:800;padding:2px 7px;border-radius:4px;}
+.knop-nvt{padding:7px 14px;border-radius:8px;cursor:pointer;font-family:'Outfit',sans-serif;font-size:0.8rem;font-weight:700;border:2px solid var(--grijs-mid);background:var(--achtergrond);color:var(--tekst-mid);transition:all 0.2s;}
+.knop-nvt:hover{border-color:var(--zilver);}
+.knop-nvt.actief{background:var(--groen-licht);border-color:var(--groen);color:var(--groen);}
+.veld-sectie-oud{display:flex;flex-direction:column;}
+
 /* Formulier footer */
 .form-footer {
   display: flex; align-items: center; gap: 12px;
@@ -817,15 +825,47 @@ function blokHTML(b, i) {
         oninput="upd(${i},'kort',this.value)">${e(b.kort || "")}</textarea>
     </div>
 
-    <div class="veld oud">
-      <div class="veld-top">
-        <div class="veld-nr">5</div>
-        <div class="veld-naam">Wettekst oud WvSv</div>
-        <span class="veld-hint">Laat leeg als het artikel nieuw is</span>
+    <div class="oud-sectie-header">
+      <div class="oud-sectie-titel">
+        <div class="oud-sectie-nr">OUD</div>
+        Oud Wetboek van Strafvordering
       </div>
-      <textarea
-        placeholder="Tekst van het oude artikel (indien van toepassing)…"
-        oninput="upd(${i},'oud',this.value)">${e(b.oud || "")}</textarea>
+      <button class="knop-nvt ${b.oudNvt ? 'actief' : ''}" onclick="toggleNvt(event,${i})">
+        ${b.oudNvt ? '✓ N.v.t.' : 'N.v.t. — geen oud artikel'}
+      </button>
+    </div>
+
+    <div class="veld-sectie-oud" id="oud-sectie-${i}" style="${b.oudNvt ? 'display:none' : ''}">
+      <div class="veld">
+        <div class="veld-top">
+          <div class="veld-nr" style="background:var(--zilver)">4</div>
+          <div class="veld-naam" style="color:var(--zilver)">Naam bevoegdheid oud WvSv</div>
+          <span class="veld-hint">Naam zoals in het oude wetboek</span>
+        </div>
+        <input type="text" placeholder="bijv. Staande houden"
+          value="${e(b.oudNaam || '')}"
+          oninput="upd(${i},'oudNaam',this.value)">
+      </div>
+      <div class="veld">
+        <div class="veld-top">
+          <div class="veld-nr" style="background:var(--zilver)">5</div>
+          <div class="veld-naam" style="color:var(--zilver)">Artikelnummer oud WvSv</div>
+          <span class="veld-hint">bijv. Art. 52</span>
+        </div>
+        <input type="text" class="smal" placeholder="Art. 52"
+          value="${e(b.oudArtikel || '')}"
+          oninput="upd(${i},'oudArtikel',this.value)">
+      </div>
+      <div class="veld">
+        <div class="veld-top">
+          <div class="veld-nr" style="background:var(--zilver)">6</div>
+          <div class="veld-naam" style="color:var(--zilver)">Wettekst oud WvSv</div>
+          <span class="veld-hint">Klikbaar open op cursistenpagina</span>
+        </div>
+        <textarea class="groot"
+          placeholder="Volledige tekst van het oude artikel…"
+          oninput="upd(${i},'oud',this.value)">${e(b.oud || '')}</textarea>
+      </div>
     </div>
 
     <div class="form-footer">
@@ -899,8 +939,25 @@ function slaOp(i) {
   });
 }
 
+function toggleNvt(event, i) {
+  event.stopPropagation();
+  data[actief][i].oudNvt = !data[actief][i].oudNvt;
+  const sectie = document.getElementById("oud-sectie-" + i);
+  const knop = event.currentTarget;
+  if (data[actief][i].oudNvt) {
+    if (sectie) sectie.style.display = "none";
+    knop.textContent = "✓ N.v.t.";
+    knop.classList.add("actief");
+  } else {
+    if (sectie) { sectie.style.display = "flex"; sectie.style.flexDirection = "column"; }
+    knop.textContent = "N.v.t. — geen oud artikel";
+    knop.classList.remove("actief");
+  }
+  opslaan();
+}
+
 function voegToe() {
-  data[actief].push({ naam:"", artikel:"", nieuw:"", kort:"", oud:"", oudArtikel:"", _open:true });
+  data[actief].push({ naam:"", artikel:"", nieuw:"", kort:"", oud:"", oudNaam:"", oudArtikel:"", oudNvt:false, _open:true });
   opslaan(); tellingen(); render();
   setTimeout(() => {
     const blokken = document.querySelectorAll(".bev");
