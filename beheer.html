@@ -225,11 +225,10 @@ body {
 }
 .knop-uitlog:hover { color: var(--wit); border-color: rgba(255,255,255,0.35); }
 .header-lijn { height: 3px; background: linear-gradient(90deg, transparent, var(--zilver), transparent); opacity: 0.4; }
-.header-sub {
-  text-align: center; padding: 0 24px 13px;
-  font-size: 0.76rem; color: rgba(255,255,255,0.52);
-  letter-spacing: 0.09em; text-transform: uppercase; font-weight: 500;
-}
+.header-subtitels { text-align: center; padding: 10px 24px 14px; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.header-sub1 { font-size: 0.78rem; color: rgba(255,255,255,0.85); letter-spacing: 0.12em; text-transform: uppercase; font-weight: 600; }
+.header-sub2 { font-size: 0.68rem; color: rgba(255,255,255,0.45); letter-spacing: 0.1em; text-transform: uppercase; font-weight: 500; }
+.header-sub { display: none; }
 
 /* Body layout */
 .app-body {
@@ -559,7 +558,10 @@ body {
       </div>
     </div>
     <div class="header-lijn"></div>
-    <p class="header-sub">Beheerpagina – Nieuw Wetboek van Strafvordering</p>
+    <div class="header-subtitels">
+      <div class="header-sub1">Wetboek van Strafvordering 2029</div>
+      <div class="header-sub2">Beheerpagina – Nieuw Wetboek van Strafvordering</div>
+    </div>
   </header>
 
   <div class="app-body">
