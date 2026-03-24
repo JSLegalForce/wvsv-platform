@@ -900,7 +900,7 @@ function slaOp(i) {
 }
 
 function voegToe() {
-  data[actief].push({ naam:"", artikel:"", nieuw:"", kort:"", oud:"", _open:true });
+  data[actief].push({ naam:"", artikel:"", nieuw:"", kort:"", oud:"", oudArtikel:"", _open:true });
   opslaan(); tellingen(); render();
   setTimeout(() => {
     const blokken = document.querySelectorAll(".bev");
