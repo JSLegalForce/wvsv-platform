@@ -103,10 +103,13 @@ body{font-family:'Outfit',sans-serif;background:var(--achtergrond);color:var(--t
 .art-col-kop{font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;padding:8px 13px;border-bottom:1px solid var(--grijs-mid);}
 .art-col-kop.oud{color:var(--tekst-mid);}
 .art-col-kop.nieuw{color:var(--blauw-licht);}
-.art-col-tekst{padding:14px 16px;font-size:0.9rem;color:var(--tekst);}
-.wet-lid{line-height:1.8;margin-bottom:10px;text-indent:-1.4em;padding-left:1.4em;}
+.art-col-tekst{padding:16px 18px;font-size:0.9rem;color:var(--tekst);}
+.wet-lid{display:flex;gap:0.5em;margin-bottom:14px;line-height:1.8;}
 .wet-lid:last-child{margin-bottom:0;}
-.art-col-tekst.leeg{color:var(--zilver);font-style:italic;}
+.wet-lid-nr{font-weight:800;color:var(--blauw);flex-shrink:0;min-width:1.6em;}
+.wet-lid-tekst{flex:1;}
+.wet-alinea{line-height:1.8;}
+.art-col-tekst.leeg{color:var(--zilver);font-style:italic;padding:14px 16px;}
 .art-col-tekst.leeg{color:var(--zilver);font-style:italic;}
 
 /* Uitleg blok */
@@ -336,17 +339,52 @@ function switchTab(btn) {
 }
 
 function wetTekst(tekst) {
-  // Splits op genummerde leden (1., 2., 3. etc) en geeft ze elk een eigen regel met styling
-  const regels = tekst.split('\n').filter(r => r.trim());
-  if (regels.length <= 1) {
-    // Probeer te splitsen op patroon "1. " "2. " etc
-    const delen = tekst.split(/(?=\d+\. )/g).filter(d => d.trim());
-    if (delen.length > 1) {
-      return delen.map(d => `<p class="wet-lid">${e(d.trim())}</p>`).join('');
+  const clean = tekst.replace(/\r\n|\r/g, '\n').replace(/\n+/g, '\n').trim();
+  // Splits op "1. " "2. " etc — ook midden in tekst
+  const parts = clean.split(/(?=(?:^|(?<=\s))(\d+)\. )/);
+  // Alternatief: regex die splitst op genummerde leden
+  const lidRe = /^(\d+)\.\s+/;
+  const regels = clean.split('\n');
+  
+  // Bouw leden op: als een regel begint met een cijfer+punt, is het een nieuw lid
+  const leden = [];
+  let huidigLid = null;
+  
+  for (const regel of regels) {
+    const m = regel.match(/^(\d+)\.\s+(.*)/);
+    if (m) {
+      if (huidigLid) leden.push(huidigLid);
+      huidigLid = { nr: m[1], tekst: m[2] };
+    } else if (huidigLid) {
+      huidigLid.tekst += ' ' + regel.trim();
+    } else {
+      // Tekst vóór eerste lid — of geen lidnummers
+      if (leden.length === 0 && !huidigLid) {
+        huidigLid = { nr: null, tekst: regel };
+      }
     }
-    return `<p class="wet-lid">${e(tekst)}</p>`;
   }
-  return regels.map(r => `<p class="wet-lid">${e(r.trim())}</p>`).join('');
+  if (huidigLid) leden.push(huidigLid);
+  
+  if (leden.length === 0) return '<p class="wet-alinea">' + e(clean) + '</p>';
+  
+  // Als er geen genummerde leden zijn, probeer te splitsen op "N. " patroon in lopende tekst
+  if (leden.length === 1 && leden[0].nr === null) {
+    const inlineSplit = clean.split(/(?=\b\d+\.\s)/);
+    if (inlineSplit.length > 1) {
+      return inlineSplit.map(deel => {
+        const im = deel.match(/^(\d+)\.\s+(.*)/s);
+        if (im) return '<div class="wet-lid"><span class="wet-lid-nr">' + im[1] + '.</span><span class="wet-lid-tekst">' + e(im[2].trim()) + '</span></div>';
+        return deel.trim() ? '<p class="wet-alinea">' + e(deel.trim()) + '</p>' : '';
+      }).join('');
+    }
+    return '<p class="wet-alinea">' + e(clean) + '</p>';
+  }
+  
+  return leden.map(lid => {
+    if (lid.nr === null) return '<p class="wet-alinea">' + e(lid.tekst) + '</p>';
+    return '<div class="wet-lid"><span class="wet-lid-nr">' + lid.nr + '.</span><span class="wet-lid-tekst">' + e(lid.tekst.trim()) + '</span></div>';
+  }).join('');
 }
 
 function e(s) {
