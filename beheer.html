@@ -202,7 +202,9 @@ body {
 #app.aan { display: flex; }
 
 /* Header — exact als GitHub */
-.app-header { background: var(--blauw); }
+.app-header { background: var(--blauw); position: relative; }
+.header-centrum { position: absolute; left: 50%; transform: translateX(-50%); text-align: center; pointer-events: none; }
+.header-centrum-titel { font-size: 0.78rem; font-weight: 700; color: #ffffff; text-transform: uppercase; letter-spacing: 0.12em; }
 .header-balk {
   display: flex; align-items: center; justify-content: space-between;
   padding: 13px 28px;
@@ -226,7 +228,7 @@ body {
 .knop-uitlog:hover { color: var(--wit); border-color: rgba(255,255,255,0.35); }
 .header-lijn { height: 3px; background: linear-gradient(90deg, transparent, var(--zilver), transparent); opacity: 0.4; }
 .header-subtitels { text-align: center; padding: 10px 24px 14px; display: flex; flex-direction: column; align-items: center; gap: 4px; }
-.header-sub1 { font-size: 0.78rem; color: rgba(255,255,255,0.85); letter-spacing: 0.12em; text-transform: uppercase; font-weight: 600; }
+.header-sub1 { font-size: 0.78rem; color: #ffffff; letter-spacing: 0.12em; text-transform: uppercase; font-weight: 700; }
 
 .header-sub { display: none; }
 
@@ -551,16 +553,14 @@ body {
         </svg>
         <span class="header-logo-naam">Legal Force</span>
       </div>
-      <div class="header-midden">Wetboek van Strafvordering 2029</div>
+      <div class="header-centrum"><div class="header-centrum-titel">Nieuw Wetboek van Strafvordering</div></div>
       <div class="header-rechts">
         <span class="badge-beheer">Beheerder</span>
         <button class="knop-uitlog" onclick="uitloggen()">Uitloggen</button>
       </div>
     </div>
     <div class="header-lijn"></div>
-    <div class="header-subtitels">
-      <div class="header-sub1">Wetboek van Strafvordering 2029</div>
-    </div>
+    
   </header>
 
   <div class="app-body">
