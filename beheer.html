@@ -1,0 +1,935 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Beheerpagina – JS Legal Force</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+
+/* ══════════════════════════════════
+   DESIGN TOKENS — exact van GitHub
+══════════════════════════════════ */
+:root {
+  /* Kleuren */
+  --blauw:        rgb(26, 42, 94);
+  --blauw-mid:    rgb(36, 53, 128);
+  --blauw-licht:  rgb(45, 64, 153);
+  --zilver:       rgb(138, 154, 181);
+  --achtergrond:  rgb(242, 244, 248);
+  --grijs-mid:    rgb(221, 226, 239);
+  --wit:          #ffffff;
+  --tekst:        rgb(26, 42, 94);
+  --tekst-mid:    rgb(74, 85, 120);
+  --groen:        rgb(26, 122, 74);
+  --groen-licht:  rgb(230, 244, 237);
+  --rood:         rgb(181, 42, 42);
+  --rood-licht:   rgb(250, 234, 234);
+  --oranje:       rgb(230, 150, 10);
+  --shadow:       0 4px 24px rgba(26,42,94,0.10);
+  --radius:       12px;
+
+  /* Login donker thema */
+  --d-bg:         #0a1428;
+  --d-card:       rgba(14, 26, 60, 0.88);
+  --d-border:     rgba(255,255,255,0.09);
+  --d-bracket:    rgba(74,123,255,0.6);
+  --d-wit:        #ffffff;
+  --d-muted:      rgba(138,154,181,0.65);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 16px; scroll-behavior: smooth; }
+
+body {
+  font-family: 'Outfit', sans-serif;
+  background: var(--achtergrond);
+  color: var(--tekst);
+  min-height: 100vh;
+}
+
+/* ══════════════════════════════════
+   LOGIN SCHERM
+══════════════════════════════════ */
+#login {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background-color: var(--d-bg);
+  background-image:
+    linear-gradient(rgba(74,123,255,0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(74,123,255,0.04) 1px, transparent 1px);
+  background-size: 36px 36px;
+  position: relative;
+}
+#login::before {
+  content: '';
+  position: absolute; inset: 0; pointer-events: none;
+  background:
+    radial-gradient(ellipse 65% 55% at 50% 38%, rgba(26,63,200,0.25) 0%, transparent 65%),
+    radial-gradient(ellipse 40% 30% at 15% 85%, rgba(20,40,140,0.10) 0%, transparent 55%);
+}
+
+/* Glasmorphism kaart */
+.login-kaart {
+  position: relative; z-index: 1;
+  background: var(--d-card);
+  border: 1px solid var(--d-border);
+  border-radius: 18px;
+  padding: 48px 44px 44px;
+  width: 100%; max-width: 480px;
+  text-align: center;
+  backdrop-filter: blur(24px);
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.04) inset, 0 24px 64px rgba(0,0,0,0.55);
+}
+
+/* Corner brackets */
+.login-kaart::before, .login-kaart::after,
+.login-kaart .hoek-ro, .login-kaart .hoek-lo {
+  content: '';
+  position: absolute;
+  width: 18px; height: 18px;
+  border-color: var(--d-bracket);
+  border-style: solid;
+}
+.login-kaart::before { top: 13px; left: 13px;  border-width: 2px 0 0 2px; border-radius: 3px 0 0 0; }
+.login-kaart::after  { top: 13px; right: 13px; border-width: 2px 2px 0 0; border-radius: 0 3px 0 0; }
+.login-kaart .hoek-ro { bottom: 13px; right: 13px; border-width: 0 2px 2px 0; border-radius: 0 0 3px 0; }
+.login-kaart .hoek-lo { bottom: 13px; left: 13px;  border-width: 0 0 2px 2px; border-radius: 0 0 0 3px; }
+
+/* Schild */
+.schild-wrap {
+  position: relative;
+  width: 120px; height: 120px;
+  margin: 0 auto 32px;
+  display: flex; align-items: center; justify-content: center;
+}
+.schild-gloed {
+  position: absolute;
+  width: 170px; height: 170px;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(circle, rgba(74,123,255,0.45) 0%, transparent 60%);
+  border-radius: 50%;
+  animation: gloeien 3s ease-in-out infinite;
+  pointer-events: none;
+}
+.schild-ring1 {
+  position: absolute;
+  width: 96px; height: 96px;
+  border: 1px solid rgba(74,123,255,0.22);
+  border-radius: 50%;
+  top: 50%; left: 50%; transform: translate(-50%,-50%);
+}
+.schild-ring2 {
+  position: absolute;
+  width: 116px; height: 116px;
+  border: 1px solid rgba(74,123,255,0.10);
+  border-radius: 50%;
+  top: 50%; left: 50%; transform: translate(-50%,-50%);
+}
+.schild-svg {
+  position: relative; z-index: 2;
+  filter: drop-shadow(0 0 18px rgba(74,123,255,0.85)) drop-shadow(0 0 5px rgba(74,123,255,0.5));
+}
+
+@keyframes gloeien {
+  0%, 100% { opacity: 0.5; transform: translate(-50%,-50%) scale(1); }
+  50%       { opacity: 1;   transform: translate(-50%,-50%) scale(1.1); }
+}
+
+.login-merk {
+  font-size: 1.75rem; font-weight: 800;
+  color: var(--d-wit); letter-spacing: 0.02em;
+  margin-bottom: 6px;
+}
+.login-streep {
+  width: 44px; height: 1.5px;
+  background: rgba(138,154,181,0.35);
+  margin: 10px auto 12px; border-radius: 2px;
+}
+.login-sub {
+  font-size: 0.72rem; color: var(--d-muted);
+  text-transform: uppercase; letter-spacing: 0.15em;
+  font-weight: 500; margin-bottom: 32px;
+  line-height: 1.6;
+}
+.login-fout {
+  background: rgba(181,42,42,0.12);
+  border-left: 3px solid rgba(181,42,42,0.55);
+  color: #f4a0a0; font-size: 0.82rem; font-weight: 500;
+  padding: 9px 13px; border-radius: 6px;
+  margin-bottom: 12px; text-align: left; display: none;
+}
+.ww-input {
+  width: 100%; padding: 14px 18px;
+  border: 1px solid rgba(255,255,255,0.13);
+  border-radius: 10px;
+  font-family: 'Outfit', sans-serif; font-size: 1rem;
+  color: var(--d-wit); background: rgba(0,0,0,0.22);
+  text-align: center; outline: none; margin-bottom: 12px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  letter-spacing: 0.04em;
+}
+.ww-input:focus {
+  border-color: rgba(74,123,255,0.55);
+  box-shadow: 0 0 0 3px rgba(74,123,255,0.13);
+}
+.ww-input::placeholder { color: rgba(138,154,181,0.45); }
+.knop-login {
+  display: flex; align-items: center; justify-content: center;
+  width: 100%; padding: 15px;
+  background: rgb(26, 42, 94);
+  border: none; border-radius: 10px;
+  color: var(--d-wit);
+  font-family: 'Outfit', sans-serif;
+  font-size: 1rem; font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s, box-shadow 0.2s;
+  box-shadow: 0 4px 20px rgba(26,42,94,0.5);
+  letter-spacing: 0.02em;
+}
+.knop-login:hover { background: rgb(36, 53, 128); box-shadow: 0 6px 28px rgba(26,42,94,0.65); }
+.knop-login:active { transform: scale(0.98); }
+
+/* ══════════════════════════════════
+   HOOFD APP
+══════════════════════════════════ */
+#app { display: none; flex-direction: column; min-height: 100vh; }
+#app.aan { display: flex; }
+
+/* Header — exact als GitHub */
+.app-header { background: var(--blauw); }
+.header-balk {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 13px 28px;
+}
+.header-logo { display: flex; align-items: center; gap: 12px; }
+.header-logo-naam { font-weight: 700; font-size: 1.3rem; letter-spacing: 0.04em; color: var(--wit); }
+.header-midden { font-size: 0.72rem; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 0.1em; font-weight: 500; }
+.header-rechts { display: flex; align-items: center; gap: 10px; }
+.badge-beheer {
+  background: rgba(138,154,181,0.18); color: var(--zilver);
+  font-size: 0.7rem; font-weight: 700; letter-spacing: 0.1em;
+  text-transform: uppercase; padding: 5px 12px; border-radius: 4px;
+  border: 1px solid rgba(138,154,181,0.28);
+}
+.knop-uitlog {
+  background: transparent; color: rgba(255,255,255,0.5);
+  border: 1px solid rgba(255,255,255,0.15); border-radius: 6px;
+  font-family: 'Outfit', sans-serif; font-size: 0.8rem;
+  padding: 6px 13px; cursor: pointer; transition: all 0.2s;
+}
+.knop-uitlog:hover { color: var(--wit); border-color: rgba(255,255,255,0.35); }
+.header-lijn { height: 3px; background: linear-gradient(90deg, transparent, var(--zilver), transparent); opacity: 0.4; }
+.header-sub {
+  text-align: center; padding: 0 24px 13px;
+  font-size: 0.76rem; color: rgba(255,255,255,0.52);
+  letter-spacing: 0.09em; text-transform: uppercase; font-weight: 500;
+}
+
+/* Body layout */
+.app-body {
+  flex: 1; display: grid;
+  grid-template-columns: 270px 1fr;
+  gap: 24px;
+  max-width: 1280px; margin: 0 auto; width: 100%;
+  padding: 28px 24px 60px;
+}
+@media (max-width: 860px) { .app-body { grid-template-columns: 1fr; } }
+
+/* ── Sidebar ── */
+.sidebar { display: flex; flex-direction: column; gap: 10px; }
+
+.kaart {
+  background: var(--wit); border-radius: var(--radius);
+  box-shadow: var(--shadow); overflow: hidden;
+}
+.kaart-kop {
+  border-top: 4px solid var(--blauw);
+  padding: 18px 18px 0;
+}
+.kaart-lichaam { padding: 14px 18px 18px; }
+
+.sidebar-titel {
+  font-size: 0.7rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.13em;
+  color: var(--tekst-mid); margin-bottom: 12px;
+}
+
+/* Rollen */
+.rol-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 11px; border-radius: 8px;
+  cursor: pointer; border: 2px solid transparent;
+  transition: background 0.15s, border-color 0.15s;
+  margin-bottom: 2px;
+}
+.rol-item:hover { background: var(--achtergrond); }
+.rol-item.actief { background: #eef1f9; border-color: var(--blauw-licht); }
+.rol-bol { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.rol-naam { font-size: 0.86rem; font-weight: 600; color: var(--tekst); flex: 1; line-height: 1.3; }
+.rol-item.actief .rol-naam { color: var(--blauw); }
+.rol-n {
+  font-size: 0.72rem; font-weight: 700;
+  color: var(--tekst-mid); background: var(--achtergrond);
+  padding: 2px 8px; border-radius: 10px;
+  min-width: 24px; text-align: center;
+}
+
+/* Toevoegen knop in sidebar */
+.knop-plus {
+  display: flex; align-items: center; justify-content: center; gap: 7px;
+  width: 100%; padding: 11px;
+  background: var(--achtergrond); border: 2px dashed var(--grijs-mid);
+  border-radius: 8px; color: var(--blauw);
+  font-family: 'Outfit', sans-serif; font-size: 0.88rem; font-weight: 700;
+  cursor: pointer; transition: all 0.2s; margin-top: 10px;
+}
+.knop-plus:hover { background: #eef1f9; border-color: var(--blauw-licht); }
+
+/* Publiceer kaart */
+.pub-kaart {
+  background: var(--wit); border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  border-top: 4px solid var(--oranje);
+  padding: 18px;
+}
+.pub-titel {
+  font-size: 0.7rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.13em;
+  color: #7a5000; margin-bottom: 7px;
+}
+.pub-sub { font-size: 0.82rem; color: var(--tekst-mid); margin-bottom: 14px; line-height: 1.55; }
+.knop-pub {
+  display: flex; align-items: center; justify-content: center; gap: 7px;
+  width: 100%; padding: 12px;
+  background: var(--blauw); border: none; border-radius: 8px;
+  color: var(--wit); font-family: 'Outfit', sans-serif;
+  font-size: 0.9rem; font-weight: 700;
+  cursor: pointer; transition: background 0.2s; letter-spacing: 0.01em;
+}
+.knop-pub:hover { background: var(--blauw-mid); }
+
+/* ── Hoofdinhoud ── */
+.inhoud { display: flex; flex-direction: column; gap: 14px; }
+
+/* Rol header */
+.rol-header {
+  background: var(--wit); border-radius: var(--radius);
+  box-shadow: var(--shadow); border-top: 4px solid var(--blauw);
+  padding: 20px 26px;
+  display: flex; align-items: center; gap: 14px;
+}
+.rol-h-bol { width: 13px; height: 13px; border-radius: 50%; flex-shrink: 0; }
+.rol-h-naam { font-weight: 800; font-size: 1.25rem; color: var(--blauw); }
+.rol-h-sub { font-size: 0.82rem; color: var(--tekst-mid); margin-top: 1px; }
+
+/* Bevoegdheid blok */
+.bev {
+  background: var(--wit); border-radius: var(--radius);
+  box-shadow: var(--shadow); overflow: hidden;
+  border-top: 4px solid var(--blauw);
+  transition: box-shadow 0.2s, border-top-color 0.2s;
+}
+.bev:hover { box-shadow: 0 6px 30px rgba(26,42,94,0.15); }
+.bev.open { border-top-color: var(--blauw-licht); }
+
+.bev-kop {
+  display: flex; align-items: center; gap: 12px;
+  padding: 15px 22px; cursor: pointer;
+  user-select: none;
+}
+.bev-nr {
+  width: 28px; height: 28px; border-radius: 50%;
+  background: var(--blauw); color: var(--wit);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.82rem; font-weight: 800; flex-shrink: 0;
+}
+.bev-naam { font-size: 0.95rem; font-weight: 700; color: var(--tekst); flex: 1; }
+.bev-art {
+  font-size: 0.72rem; font-weight: 700;
+  background: var(--achtergrond); color: var(--blauw);
+  padding: 3px 9px; border-radius: 4px;
+  border: 1px solid var(--grijs-mid); white-space: nowrap;
+}
+.bev-del {
+  width: 30px; height: 30px; border-radius: 7px;
+  background: var(--rood-licht); border: 1px solid rgba(181,42,42,0.2);
+  color: var(--rood); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.15s; flex-shrink: 0;
+}
+.bev-del:hover { background: #f5c4c4; }
+.bev-chev { color: var(--zilver); flex-shrink: 0; transition: transform 0.2s; }
+.bev.open .bev-chev { transform: rotate(180deg); color: var(--blauw); }
+
+/* Formulier */
+.bev-form {
+  display: none;
+  border-top: 2px solid var(--grijs-mid);
+  padding: 24px 22px;
+}
+.bev.open .bev-form { display: block; }
+
+/* Veld */
+.veld { margin-bottom: 20px; }
+.veld:last-of-type { margin-bottom: 0; }
+
+.veld-top {
+  display: flex; align-items: center; gap: 8px;
+  margin-bottom: 7px;
+}
+.veld-nr {
+  width: 22px; height: 22px; border-radius: 50%;
+  background: var(--blauw); color: var(--wit);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.7rem; font-weight: 800; flex-shrink: 0;
+}
+.veld-naam { font-size: 0.84rem; font-weight: 700; color: var(--blauw); flex: 1; }
+.veld-hint { font-size: 0.74rem; color: var(--tekst-mid); font-weight: 400; }
+
+/* Nieuw = lichter blauw accent */
+.veld.nieuw .veld-naam { color: var(--blauw-licht); }
+.veld.nieuw .veld-nr { background: var(--blauw-licht); }
+/* Oud = zilver accent */
+.veld.oud .veld-naam { color: var(--zilver); }
+.veld.oud .veld-nr { background: var(--zilver); }
+
+.veld input, .veld textarea {
+  width: 100%; padding: 11px 14px;
+  border: 2px solid var(--grijs-mid); border-radius: 8px;
+  font-family: 'Outfit', sans-serif; font-size: 0.92rem;
+  color: var(--tekst); background: var(--wit); outline: none;
+  transition: border-color 0.2s, background 0.2s;
+}
+.veld input:focus, .veld textarea:focus {
+  border-color: var(--blauw-licht); background: #f8f9ff;
+}
+.veld input::placeholder, .veld textarea::placeholder { color: var(--zilver); }
+.veld textarea { resize: vertical; line-height: 1.7; }
+.veld textarea.groot { min-height: 120px; }
+.veld textarea.klein { min-height: 72px; }
+.veld input.smal { max-width: 200px; }
+
+/* Formulier footer */
+.form-footer {
+  display: flex; align-items: center; gap: 12px;
+  margin-top: 22px; padding-top: 18px;
+  border-top: 2px solid var(--grijs-mid);
+}
+.knop-opslaan {
+  padding: 11px 26px;
+  background: var(--blauw); color: var(--wit);
+  border: none; border-radius: 8px;
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.92rem; font-weight: 700;
+  cursor: pointer; transition: background 0.2s, transform 0.1s;
+}
+.knop-opslaan:hover { background: var(--blauw-mid); }
+.knop-opslaan:active { transform: scale(0.98); }
+.opslaan-ok {
+  display: none; align-items: center; gap: 6px;
+  font-size: 0.82rem; font-weight: 600; color: var(--groen);
+  background: var(--groen-licht); border-left: 3px solid var(--groen);
+  padding: 7px 13px; border-radius: 6px;
+}
+
+/* Leeg */
+.leeg {
+  background: var(--wit); border-radius: var(--radius);
+  box-shadow: var(--shadow); border-top: 4px solid var(--grijs-mid);
+  padding: 60px 24px; text-align: center;
+}
+.leeg strong { display: block; font-size: 1.1rem; font-weight: 800; color: var(--blauw); margin-bottom: 7px; }
+.leeg p { font-size: 0.88rem; color: var(--tekst-mid); margin-bottom: 20px; }
+.knop-eerste {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 12px 24px; background: var(--blauw); color: var(--wit);
+  border: none; border-radius: 8px;
+  font-family: 'Outfit', sans-serif; font-size: 0.92rem; font-weight: 700;
+  cursor: pointer; transition: background 0.2s;
+}
+.knop-eerste:hover { background: var(--blauw-mid); }
+
+/* Toast */
+.toast {
+  position: fixed; bottom: 24px; right: 24px; z-index: 9999;
+  background: var(--blauw); color: var(--wit);
+  border-radius: 10px; padding: 13px 20px;
+  font-size: 0.88rem; font-weight: 600;
+  display: none; align-items: center; gap: 10px;
+  box-shadow: 0 8px 32px rgba(26,42,94,0.3);
+  animation: fadeUp 0.22s ease;
+}
+.toast.aan { display: flex; }
+.toast-bol { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.toast-bol.groen { background: #4dbd8a; }
+.toast-bol.rood  { background: #e87777; }
+
+@keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+/* Footer */
+.app-footer {
+  text-align: center; padding: 16px;
+  font-size: 0.74rem; color: var(--tekst-mid); opacity: 0.55;
+  border-top: 1px solid var(--grijs-mid);
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--grijs-mid); border-radius: 3px; }
+
+@media (max-width: 560px) {
+  .login-kaart { padding: 36px 22px 32px; }
+  .app-body { padding: 16px 14px 40px; }
+  .bev-kop { padding: 13px 16px; }
+  .bev-form { padding: 18px 16px; }
+  .header-balk { padding: 12px 16px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════
+     LOGIN
+══════════════════════════════════ -->
+<div id="login">
+  <div class="login-kaart">
+    <div class="hoek-ro"></div>
+    <div class="hoek-lo"></div>
+
+    <!-- Schild exact als JS Legal Force -->
+    <div class="schild-wrap">
+      <div class="schild-gloed"></div>
+      <div class="schild-ring1"></div>
+      <div class="schild-ring2"></div>
+      <svg class="schild-svg" viewBox="0 0 36 42" width="80" height="93" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M18 0L36 8V22C36 32 28 39 18 42C8 39 0 32 0 22V8L18 0Z" fill="#8a9ab5" opacity="0.3"/>
+        <path d="M18 3L33 10V22C33 31 26 37.5 18 40C10 37.5 3 31 3 22V10L18 3Z" fill="#8a9ab5" opacity="0.55"/>
+        <!-- Blauwe kern -->
+        <path d="M18 5L31 11V22C31 30 25 36 18 38.5C11 36 5 30 5 22V11L18 5Z" fill="url(#sg)"/>
+        <defs>
+          <linearGradient id="sg" x1="5" y1="5" x2="31" y2="38" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stop-color="#3356e0"/>
+            <stop offset="100%" stop-color="#1a2a5e"/>
+          </linearGradient>
+        </defs>
+        <text x="18" y="26" text-anchor="middle"
+          font-family="Outfit, sans-serif" font-weight="800"
+          font-size="12" fill="white" letter-spacing="0.5">JS</text>
+      </svg>
+    </div>
+
+    <div class="login-merk">JS Legal Force</div>
+    <div class="login-streep"></div>
+    <div class="login-sub">Beheerpagina<br>Nieuw Wetboek van Strafvordering</div>
+    <div class="login-fout" id="login-fout">Wachtwoord onjuist. Probeer opnieuw.</div>
+    <input class="ww-input" type="password" id="ww"
+      placeholder="Wachtwoord"
+      onkeydown="if(event.key==='Enter')login()">
+    <button class="knop-login" onclick="login()">Inloggen</button>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════
+     APP
+══════════════════════════════════ -->
+<div id="app">
+
+  <header class="app-header">
+    <div class="header-balk">
+      <div class="header-logo">
+        <svg viewBox="0 0 36 42" width="30" height="35" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M18 0L36 8V22C36 32 28 39 18 42C8 39 0 32 0 22V8L18 0Z" fill="#8a9ab5" opacity="0.3"/>
+          <path d="M18 3L33 10V22C33 31 26 37.5 18 40C10 37.5 3 31 3 22V10L18 3Z" fill="#8a9ab5" opacity="0.5"/>
+          <text x="18" y="27" text-anchor="middle" font-family="Outfit, sans-serif" font-weight="800" font-size="14" fill="white">JS</text>
+        </svg>
+        <span class="header-logo-naam">Legal Force</span>
+      </div>
+      <div class="header-midden">Wetboek van Strafvordering 2029</div>
+      <div class="header-rechts">
+        <span class="badge-beheer">Beheerder</span>
+        <button class="knop-uitlog" onclick="uitloggen()">Uitloggen</button>
+      </div>
+    </div>
+    <div class="header-lijn"></div>
+    <p class="header-sub">Beheerpagina – Nieuw Wetboek van Strafvordering</p>
+  </header>
+
+  <div class="app-body">
+
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+      <div class="kaart">
+        <div class="kaart-kop">
+          <div class="sidebar-titel">Selecteer een rol</div>
+        </div>
+        <div class="kaart-lichaam">
+
+          <div class="rol-item actief" data-rol="gewoon" onclick="kiesRol(this)">
+            <div class="rol-bol" style="background:#2d4099"></div>
+            <div class="rol-naam">Gewoon opsporingsambtenaar</div>
+            <div class="rol-n" id="n-gewoon">0</div>
+          </div>
+          <div class="rol-item" data-rol="buitengewoon" onclick="kiesRol(this)">
+            <div class="rol-bol" style="background:#4a5578"></div>
+            <div class="rol-naam">Buitengewoon opsporingsambtenaar</div>
+            <div class="rol-n" id="n-buitengewoon">0</div>
+          </div>
+          <div class="rol-item" data-rol="hulpofficier" onclick="kiesRol(this)">
+            <div class="rol-bol" style="background:#e6960a"></div>
+            <div class="rol-naam">Hulpofficier van justitie</div>
+            <div class="rol-n" id="n-hulpofficier">0</div>
+          </div>
+          <div class="rol-item" data-rol="officier" onclick="kiesRol(this)">
+            <div class="rol-bol" style="background:#1a7a4a"></div>
+            <div class="rol-naam">Officier van justitie</div>
+            <div class="rol-n" id="n-officier">0</div>
+          </div>
+          <div class="rol-item" data-rol="rc" onclick="kiesRol(this)">
+            <div class="rol-bol" style="background:#7a4a9a"></div>
+            <div class="rol-naam">Rechter-commissaris</div>
+            <div class="rol-n" id="n-rc">0</div>
+          </div>
+          <div class="rol-item" data-rol="advocaat" onclick="kiesRol(this)">
+            <div class="rol-bol" style="background:#b52a2a"></div>
+            <div class="rol-naam">Advocaat</div>
+            <div class="rol-n" id="n-advocaat">0</div>
+          </div>
+          <div class="rol-item" data-rol="verdachte" onclick="kiesRol(this)">
+            <div class="rol-bol" style="background:#8a9ab5"></div>
+            <div class="rol-naam">Verdachte</div>
+            <div class="rol-n" id="n-verdachte">0</div>
+          </div>
+          <div class="rol-item" data-rol="getuige" onclick="kiesRol(this)">
+            <div class="rol-bol" style="background:#8a9ab5"></div>
+            <div class="rol-naam">Getuige</div>
+            <div class="rol-n" id="n-getuige">0</div>
+          </div>
+          <div class="rol-item" data-rol="aangever" onclick="kiesRol(this)">
+            <div class="rol-bol" style="background:#8a9ab5"></div>
+            <div class="rol-naam">Aangever</div>
+            <div class="rol-n" id="n-aangever">0</div>
+          </div>
+
+          <button class="knop-plus" onclick="voegToe()">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+              <path d="M7 2v10M2 7h10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+            </svg>
+            Bevoegdheid toevoegen
+          </button>
+        </div>
+      </div>
+
+      <div class="pub-kaart">
+        <div class="pub-titel">Publiceren</div>
+        <div class="pub-sub">Download data.json en upload naar GitHub. De cursistenpagina laadt de nieuwe inhoud automatisch.</div>
+        <button class="knop-pub" onclick="exporteer()">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+            <path d="M7 2v7M4 7l3 3 3-3M2 11h10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          Download data.json
+        </button>
+      </div>
+    </div>
+
+    <!-- INHOUD -->
+    <div class="inhoud" id="inhoud"></div>
+
+  </div>
+
+  <footer class="app-footer">JS Legal Force – Beheerpagina · Wetboek van Strafvordering 2029</footer>
+</div>
+
+<div class="toast" id="toast">
+  <div class="toast-bol groen" id="toast-bol"></div>
+  <span id="toast-tekst"></span>
+</div>
+
+
+<script>
+/* ════════ CONFIGURATIE ════════ */
+const WW = "Janswartisgek-41@";
+
+const ROLLEN = {
+  gewoon:       { naam: "Gewoon opsporingsambtenaar",        kleur: "#2d4099" },
+  buitengewoon: { naam: "Buitengewoon opsporingsambtenaar",  kleur: "#4a5578" },
+  hulpofficier: { naam: "Hulpofficier van justitie",         kleur: "#e6960a" },
+  officier:     { naam: "Officier van justitie",             kleur: "#1a7a4a" },
+  rc:           { naam: "Rechter-commissaris",               kleur: "#7a4a9a" },
+  advocaat:     { naam: "Advocaat",                          kleur: "#b52a2a" },
+  verdachte:    { naam: "Verdachte",                         kleur: "#8a9ab5" },
+  getuige:      { naam: "Getuige",                           kleur: "#8a9ab5" },
+  aangever:     { naam: "Aangever",                          kleur: "#8a9ab5" }
+};
+
+/* ════════ STATE ════════ */
+let actief = "gewoon";
+let data = JSON.parse(localStorage.getItem("jslf_data") || "{}");
+Object.keys(ROLLEN).forEach(r => { if (!data[r]) data[r] = []; });
+
+/* ════════ LOGIN ════════ */
+function login() {
+  if (document.getElementById("ww").value === WW) {
+    document.getElementById("login").style.display = "none";
+    document.getElementById("app").classList.add("aan");
+    render(); tellingen();
+  } else {
+    document.getElementById("login-fout").style.display = "block";
+    document.getElementById("ww").value = "";
+    document.getElementById("ww").focus();
+  }
+}
+
+function uitloggen() {
+  document.getElementById("login").style.display = "flex";
+  document.getElementById("app").classList.remove("aan");
+  document.getElementById("ww").value = "";
+  document.getElementById("login-fout").style.display = "none";
+}
+
+/* ════════ ROL ════════ */
+function kiesRol(el) {
+  document.querySelectorAll(".rol-item").forEach(r => r.classList.remove("actief"));
+  el.classList.add("actief");
+  actief = el.dataset.rol;
+  render();
+}
+
+function tellingen() {
+  Object.keys(ROLLEN).forEach(r => {
+    const el = document.getElementById("n-" + r);
+    if (el) el.textContent = (data[r] || []).length;
+  });
+}
+
+/* ════════ RENDER ════════ */
+function render() {
+  const rol = ROLLEN[actief];
+  const lijst = data[actief] || [];
+
+  let html = `
+    <div class="rol-header">
+      <div class="rol-h-bol" style="background:${rol.kleur}"></div>
+      <div>
+        <div class="rol-h-naam">${rol.naam}</div>
+        <div class="rol-h-sub">${lijst.length} bevoegdheid${lijst.length !== 1 ? "en" : ""} ingevoerd</div>
+      </div>
+    </div>`;
+
+  if (!lijst.length) {
+    html += `
+      <div class="leeg">
+        <strong>Nog geen bevoegdheden</strong>
+        <p>Voeg de eerste bevoegdheid toe voor de ${rol.naam.toLowerCase()}.</p>
+        <button class="knop-eerste" onclick="voegToe()">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+            <path d="M7 2v10M2 7h10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+          </svg>
+          Eerste bevoegdheid toevoegen
+        </button>
+      </div>`;
+  } else {
+    lijst.forEach((b, i) => { html += blokHTML(b, i); });
+    html += `
+      <button class="knop-plus" onclick="voegToe()" style="margin-top:4px">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+          <path d="M7 2v10M2 7h10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+        </svg>
+        Nog een bevoegdheid toevoegen
+      </button>`;
+  }
+
+  document.getElementById("inhoud").innerHTML = html;
+}
+
+/* ════════ BLOK HTML ════════ */
+function blokHTML(b, i) {
+  const naam = b.naam || "Nieuwe bevoegdheid";
+  const art  = b.artikel || "";
+  const open = b._open ? "open" : "";
+
+  return `
+<div class="bev ${open}" id="bev-${i}">
+  <div class="bev-kop" onclick="toggleBev(${i})">
+    <div class="bev-nr">${i + 1}</div>
+    <div class="bev-naam">${e(naam)}</div>
+    ${art ? `<div class="bev-art">${e(art)}</div>` : ""}
+    <button class="bev-del" onclick="verwijder(event,${i})" title="Verwijderen">
+      <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+        <path d="M2 2l8 8M10 2l-8 8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+      </svg>
+    </button>
+    <svg class="bev-chev" width="16" height="16" viewBox="0 0 16 16" fill="none">
+      <path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  </div>
+
+  <div class="bev-form">
+
+    <div class="veld">
+      <div class="veld-top">
+        <div class="veld-nr">1</div>
+        <div class="veld-naam">Naam van de bevoegdheid</div>
+      </div>
+      <input type="text" placeholder="bijv. Staande houden"
+        value="${e(b.naam || "")}"
+        oninput="upd(${i},'naam',this.value)">
+    </div>
+
+    <div class="veld">
+      <div class="veld-top">
+        <div class="veld-nr">2</div>
+        <div class="veld-naam">Artikelnummer nieuw WvSv</div>
+        <span class="veld-hint">bijv. Art. 2.5.3</span>
+      </div>
+      <input type="text" class="smal" placeholder="Art. 2.5.3"
+        value="${e(b.artikel || "")}"
+        oninput="upd(${i},'artikel',this.value)">
+    </div>
+
+    <div class="veld nieuw">
+      <div class="veld-top">
+        <div class="veld-nr">3</div>
+        <div class="veld-naam">Wettekst nieuw WvSv</div>
+        <span class="veld-hint">Plak de exacte wettekst</span>
+      </div>
+      <textarea class="groot"
+        placeholder="Plak hier de exacte tekst van het nieuwe artikel…"
+        oninput="upd(${i},'nieuw',this.value)">${e(b.nieuw || "")}</textarea>
+    </div>
+
+    <div class="veld">
+      <div class="veld-top">
+        <div class="veld-nr">4</div>
+        <div class="veld-naam">Korte uitleg</div>
+        <span class="veld-hint">Max. 2 zinnen – voor op straat</span>
+      </div>
+      <textarea class="klein"
+        placeholder="Wat mag je in de praktijk? In jouw eigen woorden…"
+        oninput="upd(${i},'kort',this.value)">${e(b.kort || "")}</textarea>
+    </div>
+
+    <div class="veld oud">
+      <div class="veld-top">
+        <div class="veld-nr">5</div>
+        <div class="veld-naam">Wettekst oud WvSv</div>
+        <span class="veld-hint">Laat leeg als het artikel nieuw is</span>
+      </div>
+      <textarea
+        placeholder="Tekst van het oude artikel (indien van toepassing)…"
+        oninput="upd(${i},'oud',this.value)">${e(b.oud || "")}</textarea>
+    </div>
+
+    <div class="form-footer">
+      <button class="knop-opslaan" onclick="slaOp(${i})">Opslaan</button>
+      <div class="opslaan-ok" id="ok-${i}">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+          <path d="M2 7l4 4 6-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Opgeslagen
+      </div>
+    </div>
+  </div>
+</div>`;
+}
+
+/* ════════ ACTIES ════════ */
+function toggleBev(i) {
+  data[actief][i]._open = !data[actief][i]._open;
+  render();
+}
+
+function upd(i, veld, waarde) {
+  data[actief][i][veld] = waarde;
+  const bev = document.getElementById("bev-" + i);
+  if (!bev) return;
+  if (veld === "naam") {
+    const n = bev.querySelector(".bev-naam");
+    if (n) n.textContent = waarde || "Nieuwe bevoegdheid";
+  }
+  if (veld === "artikel") {
+    let a = bev.querySelector(".bev-art");
+    if (waarde && !a) {
+      const kop = bev.querySelector(".bev-kop");
+      const del = kop.querySelector(".bev-del");
+      const s = document.createElement("div");
+      s.className = "bev-art";
+      s.textContent = waarde;
+      kop.insertBefore(s, del);
+    } else if (a) {
+      a.textContent = waarde;
+    }
+  }
+}
+
+function slaOp(i) {
+  opslaan();
+  const ok = document.getElementById("ok-" + i);
+  if (ok) { ok.style.display = "flex"; setTimeout(() => ok.style.display = "none", 2500); }
+  tellingen();
+}
+
+function voegToe() {
+  data[actief].push({ naam:"", artikel:"", nieuw:"", kort:"", oud:"", _open:true });
+  opslaan(); tellingen(); render();
+  setTimeout(() => {
+    const blokken = document.querySelectorAll(".bev");
+    if (blokken.length) blokken[blokken.length - 1].scrollIntoView({ behavior:"smooth", block:"start" });
+  }, 80);
+}
+
+function verwijder(event, i) {
+  event.stopPropagation();
+  const naam = data[actief][i].naam || "Zonder naam";
+  if (!confirm(`"${naam}" verwijderen?`)) return;
+  data[actief].splice(i, 1);
+  opslaan(); tellingen(); render();
+  showToast("Bevoegdheid verwijderd", "rood");
+}
+
+/* ════════ DATA ════════ */
+function opslaan() {
+  const s = JSON.parse(JSON.stringify(data));
+  Object.keys(s).forEach(r => s[r].forEach(b => delete b._open));
+  localStorage.setItem("jslf_data", JSON.stringify(s));
+}
+
+function exporteer() {
+  const s = JSON.parse(JSON.stringify(data));
+  Object.keys(s).forEach(r => s[r].forEach(b => delete b._open));
+  const blob = new Blob([JSON.stringify(s, null, 2)], { type:"application/json" });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement("a");
+  a.href = url; a.download = "data.json";
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a); URL.revokeObjectURL(url);
+  showToast("data.json gedownload — zet op GitHub", "groen");
+}
+
+function showToast(tekst, kleur) {
+  const t  = document.getElementById("toast");
+  const tb = document.getElementById("toast-bol");
+  document.getElementById("toast-tekst").textContent = tekst;
+  tb.className = "toast-bol " + kleur;
+  t.classList.add("aan");
+  setTimeout(() => t.classList.remove("aan"), 3200);
+}
+
+function e(s) {
+  return String(s)
+    .replace(/&/g,"&amp;").replace(/"/g,"&quot;")
+    .replace(/</g,"&lt;").replace(/>/g,"&gt;");
+}
+
+/* Start */
+document.getElementById("ww").focus();
+</script>
+</body>
+</html>
