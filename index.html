@@ -113,6 +113,29 @@ body{font-family:'Outfit',sans-serif;background:var(--achtergrond);color:var(--t
 .art-col-tekst.leeg{color:var(--zilver);font-style:italic;}
 
 /* Uitleg blok */
+.oud-sectie-label{font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:var(--tekst-mid);margin-bottom:8px;display:flex;align-items:center;gap:8px;}
+.oud-sectie-badge{background:var(--achtergrond);color:var(--tekst-mid);padding:2px 8px;border-radius:4px;font-size:0.7rem;font-weight:700;border:1px solid var(--grijs-mid);}
+.sectie-label{font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:var(--blauw);margin-bottom:10px;display:flex;align-items:center;gap:8px;}
+.sectie-badge{background:#eef1f9;color:var(--blauw);padding:2px 8px;border-radius:4px;font-size:0.7rem;font-weight:700;}
+.artikel-nieuw{background:#f4f6fc;border-radius:9px;border-left:3px solid var(--blauw);padding:16px 18px;margin-bottom:18px;}
+.wet-lid{display:flex;gap:10px;margin-bottom:12px;line-height:1.8;font-size:0.92rem;color:var(--tekst);}
+.wet-lid:last-child{margin-bottom:0;}
+.wet-lid-nr{font-weight:700;color:var(--blauw);flex-shrink:0;min-width:20px;}
+.wet-lid-tekst{flex:1;}
+.wet-alinea{font-size:0.92rem;line-height:1.8;color:var(--tekst);}
+.oud-blok{border:1px solid var(--grijs-mid);border-radius:9px;overflow:hidden;}
+.oud-kop{display:flex;align-items:center;gap:12px;padding:11px 14px;cursor:pointer;background:var(--achtergrond);user-select:none;transition:background 0.15s;}
+.oud-kop:hover{background:#e8ecf5;}
+.oud-art-tag{font-size:0.72rem;font-weight:700;color:var(--tekst-mid);background:var(--wit);border:1px solid var(--grijs-mid);padding:2px 9px;border-radius:4px;white-space:nowrap;flex-shrink:0;}
+.oud-kop-naam{flex:1;font-size:0.88rem;font-weight:600;color:var(--tekst-mid);}
+.oud-kop-hint{font-size:0.75rem;color:var(--zilver);white-space:nowrap;}
+.oud-pijl{font-size:0.75rem;color:var(--zilver);transition:transform 0.2s;flex-shrink:0;}
+.oud-kop.open .oud-pijl{transform:rotate(180deg);}
+.oud-kop.open .oud-kop-hint{display:none;}
+.oud-tekst-blok{display:none;padding:14px 16px;border-top:1px solid var(--grijs-mid);background:var(--wit);}
+.oud-tekst-blok.zichtbaar{display:block;}
+.oud-tekst{font-size:0.88rem;color:var(--tekst-mid);line-height:1.8;}
+.oud-leeg{font-size:0.88rem;color:var(--zilver);font-style:italic;}
 .uitleg-blok{background:var(--achtergrond);border-radius:9px;border-left:4px solid var(--blauw);padding:14px 16px;font-size:0.9rem;line-height:1.75;color:var(--tekst);}
 .uitleg-blok.leeg{color:var(--zilver);font-style:italic;}
 
@@ -290,16 +313,16 @@ function renderBev() {
   wrap.querySelectorAll(".tab-btn").forEach(btn => {
     btn.addEventListener("click", e => { e.stopPropagation(); switchTab(btn); });
   });
+  wrap.querySelectorAll(".oud-kop").forEach(kop => kop.addEventListener("click", e => { e.stopPropagation(); toggleOud(kop); }));
 }
 
 function kaartHTML(b, i) {
+  const heeftOud = b.oud && b.oud.trim();
   return `
 <div class="bev-kaart">
   <div class="bev-kop">
     <div class="bev-nr">${i+1}</div>
-    <div class="bev-naam-wrap">
-      <div class="bev-naam">${e(b.naam||"Bevoegdheid")}</div>
-    </div>
+    <div class="bev-naam">${e(b.naam||"Bevoegdheid")}</div>
     ${b.artikel ? `<div class="bev-art">${e(b.artikel)}</div>` : ""}
     <svg class="bev-chev" width="16" height="16" viewBox="0 0 16 16" fill="none">
       <path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
@@ -311,25 +334,49 @@ function kaartHTML(b, i) {
       <button class="tab-btn" data-tab="uitleg">Korte uitleg</button>
     </div>
     <div class="tab-inhoud actief" data-tab="artikeltekst">
-      <div class="art-grid">
-        <div class="art-col art-col-nieuw">
-          <div class="art-col-kop nieuw">Nieuw WvSv${b.artikel ? " – "+e(b.artikel) : ""}</div>
-          <div class="art-col-tekst${b.nieuw ? "" : " leeg"}">${b.nieuw ? wetTekst(b.nieuw) : "Nog geen tekst ingevoerd."}</div>
+      <div class="sectie-label">
+        Nieuw WvSv ${b.artikel ? `<span class="sectie-badge">${e(b.artikel)}</span>` : ""}
+      </div>
+      <div class="artikel-nieuw">
+        ${b.nieuw ? wetTekst(b.nieuw) : '<span style="color:var(--zilver);font-style:italic;font-size:0.9rem;">Nog geen tekst ingevoerd.</span>'}
+      </div>
+      <div class="oud-sectie-label">
+        Oud WvSv <span class="oud-sectie-badge">vervallen</span>
+      </div>
+      <div class="oud-blok">
+        <div class="oud-kop">
+          <div class="oud-art-tag">${e(b.oudArtikel || "Art. ?")}</div>
+          <div class="oud-kop-naam">${e(b.naam || "Oud artikel")}</div>
+          ${heeftOud ? '<div class="oud-kop-hint">Klik voor volledige tekst</div>' : ''}
+          <div class="oud-pijl">${heeftOud ? "▼" : "–"}</div>
         </div>
-        <div class="art-col art-col-oud">
-          <div class="art-col-kop oud">Oud WvSv${b.artikel ? " – "+e(b.artikel)+" (oud)" : ""}</div>
-          <div class="art-col-tekst${b.oud ? "" : " leeg"}">${b.oud ? wetTekst(b.oud) : "Dit artikel bestond niet in het oude wetboek."}</div>
-        </div>
+        ${heeftOud ? `
+        <div class="oud-tekst-blok">
+          <div class="oud-tekst">${e(b.oud)}</div>
+        </div>` : `
+        <div class="oud-tekst-blok zichtbaar">
+          <div class="oud-leeg">Geen oud artikel opgegeven.</div>
+        </div>`}
       </div>
     </div>
     <div class="tab-inhoud" data-tab="uitleg">
-      <div class="uitleg-blok${b.kort ? "" : " leeg"}">${b.kort ? e(b.kort) : "Nog geen uitleg toegevoegd."}</div>
+      <div class="uitleg-blok${b.kort?"":" leeg"}">${b.kort ? e(b.kort) : "Nog geen uitleg toegevoegd."}</div>
     </div>
   </div>
 </div>`;
 }
 
 function toggleKaart(kaart) { kaart.classList.toggle("open"); }
+
+function toggleOud(kop) {
+  const blok = kop.nextElementSibling;
+  if (!blok) return;
+  const open = blok.classList.contains("zichtbaar");
+  blok.classList.toggle("zichtbaar", !open);
+  kop.classList.toggle("open", !open);
+  const hint = kop.querySelector(".oud-kop-hint");
+  if (hint) hint.textContent = open ? "Klik voor volledige tekst" : "Klik om te sluiten";
+}
 
 function switchTab(btn) {
   const detail = btn.closest(".bev-detail");
