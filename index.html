@@ -114,7 +114,8 @@ body{font-family:'Outfit',sans-serif;background:var(--achtergrond);color:var(--t
 
 /* Uitleg blok */
 .oud-sectie-label{font-size:0.78rem;font-weight:700;color:var(--tekst-mid);margin-bottom:8px;display:flex;align-items:center;gap:8px;}
-.oud-sectie-badge{background:var(--achtergrond);color:var(--tekst-mid);padding:2px 8px;border-radius:4px;font-size:0.7rem;font-weight:700;border:1px solid var(--grijs-mid);}
+.oud-sectie-badge{background:var(--achtergrond);color:var(--tekst-mid);padding:2px 8px;border-radius:4px;font-size:0.72rem;font-weight:700;border:1px solid var(--grijs-mid);}
+.oud-vervallen{background:var(--rood-licht);color:var(--rood);border-color:rgba(181,42,42,0.2);}
 .sectie-label{font-size:0.78rem;font-weight:700;color:var(--blauw);margin-bottom:10px;display:flex;align-items:center;gap:8px;}
 .sectie-badge{background:#eef1f9;color:var(--blauw);padding:2px 8px;border-radius:4px;font-size:0.7rem;font-weight:700;}
 .artikel-nieuw{background:#f4f6fc;border-radius:9px;border-left:3px solid var(--blauw);padding:16px 18px;margin-bottom:18px;}
@@ -342,10 +343,9 @@ function kaartHTML(b, i) {
       <div class="artikel-nieuw">
         ${b.nieuw ? wetTekst(b.nieuw) : '<span style="color:var(--zilver);font-style:italic;font-size:0.9rem;">Nog geen tekst ingevoerd.</span>'}
       </div>
-      <div class="oud-sectie-label">Oud WvSv <span class="oud-sectie-badge">vervallen</span></div>
+      <div class="oud-sectie-label">Oud WvSv ${b.oudArtikel ? `<span class="oud-sectie-badge">${e(b.oudArtikel)}</span>` : ''}<span class="oud-sectie-badge oud-vervallen">vervallen</span></div>
       <div class="oud-blok">
         <div class="oud-kop">
-          ${b.oudArtikel ? `<div class="oud-art-tag">${e(b.oudArtikel)}</div>` : ''}
           <div class="oud-kop-naam">${e(b.oudNaam || b.naam || "Oud artikel")}</div>
           ${heeftOud ? '<div class="oud-kop-hint">Klik voor volledige tekst</div>' : ''}
           <div class="oud-pijl">${heeftOud ? "▼" : "–"}</div>
