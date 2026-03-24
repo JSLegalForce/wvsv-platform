@@ -318,6 +318,8 @@ function renderBev() {
 
 function kaartHTML(b, i) {
   const heeftOud = b.oud && b.oud.trim();
+  const oudNvt = b.oudNvt === true;
+  const oudNaam = b.oudNaam || b.naam || "Oud artikel";
   return `
 <div class="bev-kaart">
   <div class="bev-kop">
