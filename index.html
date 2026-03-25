@@ -113,7 +113,7 @@ body{font-family:'Outfit',sans-serif;background:var(--achtergrond);color:var(--t
 .art-col-tekst.leeg{color:var(--zilver);font-style:italic;}
 
 /* Uitleg blok */
-.oud-sectie-label{font-size:0.78rem;font-weight:700;color:var(--tekst-mid);margin-bottom:8px;display:flex;align-items:center;gap:8px;}
+.oud-sectie-label{display:none;}
 .oud-sectie-badge{background:var(--achtergrond);color:var(--tekst-mid);padding:2px 8px;border-radius:4px;font-size:0.72rem;font-weight:700;border:1px solid var(--grijs-mid);}
 .oud-vervallen{background:var(--rood-licht);color:var(--rood);border-color:rgba(181,42,42,0.2);}
 .sectie-label{font-size:0.78rem;font-weight:700;color:var(--blauw);margin-bottom:10px;display:flex;align-items:center;gap:8px;}
@@ -128,6 +128,9 @@ body{font-family:'Outfit',sans-serif;background:var(--achtergrond);color:var(--t
 .oud-kop{display:flex;align-items:center;gap:12px;padding:11px 14px;cursor:pointer;background:var(--achtergrond);user-select:none;transition:background 0.15s;}
 .oud-kop:hover{background:#e8ecf5;}
 .oud-art-tag{font-size:0.72rem;font-weight:700;color:var(--tekst-mid);background:var(--wit);border:1px solid var(--grijs-mid);padding:2px 9px;border-radius:4px;white-space:nowrap;flex-shrink:0;}
+.oud-kop-links{display:flex;flex-direction:column;gap:3px;flex:1;}
+.oud-kop-regel1{font-size:0.88rem;font-weight:600;color:var(--tekst);}
+.oud-kop-regel2{font-size:0.8rem;color:var(--tekst-mid);}
 .oud-kop-naam{flex:1;font-size:0.88rem;font-weight:600;color:var(--tekst-mid);}
 .oud-kop-hint{font-size:0.75rem;color:var(--zilver);white-space:nowrap;}
 .oud-pijl{font-size:0.75rem;color:var(--zilver);transition:transform 0.2s;flex-shrink:0;}
@@ -360,7 +363,12 @@ function kaartHTML(b, i) {
       </div>
     </div>
     <div class="tab-inhoud" data-tab="uitleg">
-      <div class="uitleg-blok${b.kort?"":" leeg"}">${b.kort ? e(b.kort) : "Nog geen uitleg toegevoegd."}</div>
+      <div class="uitleg-sectie-label">
+        Korte uitleg <span class="uitleg-sectie-badge">voor op straat</span>
+      </div>
+      <div class="uitleg-blok${b.kort ? '' : ' leeg'}">
+        ${b.kort ? korteTekst(b.kort) : '<span style="color:var(--zilver);font-style:italic;font-size:0.92rem;">Nog geen uitleg toegevoegd.</span>'}
+      </div>
     </div>
   </div>
 </div>`;
@@ -383,6 +391,13 @@ function switchTab(btn) {
   const tab    = btn.dataset.tab;
   detail.querySelectorAll(".tab-btn").forEach(b => b.classList.toggle("actief", b.dataset.tab===tab));
   detail.querySelectorAll(".tab-inhoud").forEach(p => p.classList.toggle("actief", p.dataset.tab===tab));
+}
+
+function korteTekst(tekst) {
+  const clean = tekst.replace(/\r\n|\r/g,'\n').trim();
+  const regels = clean.split('\n').filter(r => r.trim());
+  if (regels.length <= 1) return '<p class="uitleg-alinea">' + e(clean) + '</p>';
+  return regels.map(r => '<p class="uitleg-alinea">' + e(r.trim()) + '</p>').join('');
 }
 
 function wetTekst(tekst) {
