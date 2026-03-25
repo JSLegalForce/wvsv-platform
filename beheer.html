@@ -848,6 +848,31 @@ function blokHTML(b, i) {
       </div>
     </div>
 
+    <div class="mvt-sectie-header">
+      <div class="oud-sectie-titel">
+        <div class="oud-sectie-nr" style="background:#7a4a9a">MvT</div>
+        Memorie van Toelichting
+      </div>
+      <button class="knop-nvt ${b.mvtNvt ? 'actief' : ''}" onclick="toggleMvtNvt(event,${i})">
+        ${b.mvtNvt ? '✓ N.v.t.' : 'N.v.t. — niet relevant'}
+      </button>
+    </div>
+
+    <div class="veld-sectie-mvt" id="mvt-sectie-${i}" style="${b.mvtNvt ? 'display:none' : ''}">
+      <div class="veld">
+        <div class="veld-top">
+          <div class="veld-nr" style="background:#7a4a9a">5</div>
+          <div class="veld-naam" style="color:#7a4a9a">Memorie van Toelichting</div>
+          <span class="veld-hint">Toelichting bij het artikel — klikbaar op cursistenpagina</span>
+        </div>
+        <div class="textarea-wrap" id="wrap-mvt-${i}">
+          <textarea class="groot"
+            placeholder="Plak hier de relevante passage uit de Memorie van Toelichting…"
+            oninput="upd(${i},'mvt',this.value)">${e(b.mvt || "")}</textarea>
+          <button type="button" class="textarea-uitvouw" onclick="toggleGroot('mvt',${i})" title="Vergroot invoerveld">⤢</button>
+        </div>
+      </div>
+    </div>
     <div class="oud-sectie-header">
       <div class="oud-sectie-titel">
         <div class="oud-sectie-nr">OUD</div>
@@ -861,7 +886,7 @@ function blokHTML(b, i) {
     <div class="veld-sectie-oud" id="oud-sectie-${i}" style="${b.oudNvt ? 'display:none' : ''}">
       <div class="veld">
         <div class="veld-top">
-          <div class="veld-nr" style="background:var(--zilver)">4</div>
+          <div class="veld-nr" style="background:var(--zilver)">8</div>
           <div class="veld-naam" style="color:var(--zilver)">Naam bevoegdheid oud WvSv</div>
           <span class="veld-hint">Naam zoals in het oude wetboek</span>
         </div>
@@ -871,7 +896,7 @@ function blokHTML(b, i) {
       </div>
       <div class="veld">
         <div class="veld-top">
-          <div class="veld-nr" style="background:var(--zilver)">5</div>
+          <div class="veld-nr" style="background:var(--zilver)">7</div>
           <div class="veld-naam" style="color:var(--zilver)">Artikelnummer oud WvSv</div>
           <span class="veld-hint">bijv. Art. 52</span>
         </div>
@@ -894,31 +919,6 @@ function blokHTML(b, i) {
       </div>
     </div>
 
-    <div class="mvt-sectie-header">
-      <div class="oud-sectie-titel">
-        <div class="oud-sectie-nr">MvT</div>
-        Memorie van Toelichting
-      </div>
-      <button class="knop-nvt ${b.mvtNvt ? 'actief' : ''}" onclick="toggleMvtNvt(event,${i})">
-        ${b.mvtNvt ? '✓ N.v.t.' : 'N.v.t. — niet relevant'}
-      </button>
-    </div>
-
-    <div class="veld-sectie-mvt" id="mvt-sectie-${i}" style="${b.mvtNvt ? 'display:none' : ''}">
-      <div class="veld">
-        <div class="veld-top">
-          <div class="veld-nr" style="background:#7a4a9a">7</div>
-          <div class="veld-naam" style="color:#7a4a9a">Memorie van Toelichting</div>
-          <span class="veld-hint">Toelichting bij het artikel — klikbaar op cursistenpagina</span>
-        </div>
-        <div class="textarea-wrap" id="wrap-mvt-${i}">
-          <textarea class="groot"
-            placeholder="Plak hier de relevante passage uit de Memorie van Toelichting…"
-            oninput="upd(${i},'mvt',this.value)">${e(b.mvt || "")}</textarea>
-          <button type="button" class="textarea-uitvouw" onclick="toggleGroot('mvt',${i})" title="Vergroot invoerveld">⤢</button>
-        </div>
-      </div>
-    </div>
 
     <div class="form-footer">
       <button class="knop-opslaan" onclick="slaOp(${i})">Opslaan</button>
