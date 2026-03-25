@@ -1003,6 +1003,24 @@ function toggleGroot(veld, i) {
   }
 }
 
+function toggleMvtNvt(event, i) {
+  event.stopPropagation();
+  data[actief][i].mvtNvt = !data[actief][i].mvtNvt;
+  const sectie = document.getElementById("mvt-sectie-" + i);
+  const knop = event.currentTarget;
+  if (data[actief][i].mvtNvt) {
+    if (sectie) sectie.style.display = "none";
+    knop.textContent = "✓ N.v.t.";
+    knop.classList.add("actief");
+  } else {
+    if (sectie) { sectie.style.display = "flex"; sectie.style.flexDirection = "column"; }
+    knop.textContent = "N.v.t. — niet relevant";
+    knop.classList.remove("actief");
+  }
+  opslaan();
+  tellingen();
+}
+
 function toggleNvt(event, i) {
   event.stopPropagation();
   data[actief][i].oudNvt = !data[actief][i].oudNvt;
