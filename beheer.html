@@ -424,6 +424,21 @@ body {
 .knop-nvt.actief{background:var(--groen-licht);border-color:var(--groen);color:var(--groen);}
 .veld-sectie-oud{display:flex;flex-direction:column;}
 
+/* Uitvouw textarea */
+.textarea-wrap { position: relative; }
+.textarea-uitvouw {
+  position: absolute; right: 0; top: 0;
+  width: 28px; height: 28px;
+  background: var(--blauw); color: var(--wit);
+  border: none; border-radius: 0 8px 0 8px;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  font-size: 14px; transition: background 0.2s; z-index: 2;
+  line-height: 1;
+}
+.textarea-uitvouw:hover { background: var(--blauw-mid); }
+.textarea-wrap textarea { transition: min-height 0.25s ease; }
+.textarea-wrap.groot textarea { min-height: 320px !important; }
+
 /* Formulier footer */
 .form-footer {
   display: flex; align-items: center; gap: 12px;
@@ -809,9 +824,12 @@ function blokHTML(b, i) {
         <div class="veld-naam">Wettekst nieuw WvSv</div>
         <span class="veld-hint">Elk lid op een nieuwe regel (1. tekst Enter 2. tekst)</span>
       </div>
-      <textarea class="groot"
+      <div class="textarea-wrap" id="wrap-nieuw-${i}">
+        <textarea class="groot"
         placeholder="Plak hier de exacte tekst van het nieuwe artikel…"
         oninput="upd(${i},'nieuw',this.value)">${e(b.nieuw || "")}</textarea>
+        <button type="button" class="textarea-uitvouw" onclick="toggleGroot('nieuw',${i})" title="Vergroot/verklein">⤢</button>
+      </div>
     </div>
 
     <div class="veld">
@@ -820,9 +838,12 @@ function blokHTML(b, i) {
         <div class="veld-naam">Korte uitleg</div>
         <span class="veld-hint">Max. 2 zinnen – voor op straat</span>
       </div>
-      <textarea class="groot"
+      <div class="textarea-wrap" id="wrap-kort-${i}">
+        <textarea class="groot"
         placeholder="Schrijf elke zin op een nieuwe regel voor nette weergave.&#10;&#10;Bijv:&#10;Je mag de verdachte staande houden om zijn identiteit te controleren.&#10;Vraag altijd om een geldig identiteitsbewijs."
         oninput="upd(${i},'kort',this.value)">${e(b.kort || "")}</textarea>
+        <button type="button" class="textarea-uitvouw" onclick="toggleGroot('kort',${i})" title="Vergroot/verklein">⤢</button>
+      </div>
     </div>
 
     <div class="oud-sectie-header">
@@ -862,9 +883,12 @@ function blokHTML(b, i) {
           <div class="veld-naam" style="color:var(--zilver)">Wettekst oud WvSv</div>
           <span class="veld-hint">Klikbaar open op cursistenpagina</span>
         </div>
+        <div class="textarea-wrap" id="wrap-oud-${i}">
         <textarea class="groot"
           placeholder="Volledige tekst van het oude artikel…"
           oninput="upd(${i},'oud',this.value)">${e(b.oud || '')}</textarea>
+        <button type="button" class="textarea-uitvouw" onclick="toggleGroot('oud',${i})" title="Vergroot/verklein">⤢</button>
+      </div>
       </div>
     </div>
 
@@ -937,6 +961,18 @@ function slaOp(i) {
       setTimeout(() => { ok.style.display = "none"; ok.removeAttribute("style"); }, 4000);
     }
   });
+}
+
+function toggleGroot(veld, i) {
+  const wrap = document.getElementById('wrap-' + veld + '-' + i);
+  if (!wrap) return;
+  wrap.classList.toggle('groot');
+  const btn = wrap.querySelector('.textarea-uitvouw');
+  btn.textContent = wrap.classList.contains('groot') ? '⤡' : '⤢';
+  btn.title = wrap.classList.contains('groot') ? 'Verkleinen' : 'Vergroot invoerveld';
+  if (wrap.classList.contains('groot')) {
+    wrap.querySelector('textarea').focus();
+  }
 }
 
 function toggleNvt(event, i) {
