@@ -9,7 +9,8 @@
       "oudNaam": "Staande houden",
       "oudArtikel": "Art. 52",
       "oudNvt": false,
-      "mvt": "Test in het kader van "
+      "mvt": "Test in het kader van ",
+      "mvtNvt": false
     }
   ],
   "buitengewoon": [],
