@@ -423,6 +423,8 @@ body {
 .knop-nvt:hover{border-color:var(--zilver);}
 .knop-nvt.actief{background:var(--groen-licht);border-color:var(--groen);color:var(--groen);}
 .veld-sectie-oud{display:flex;flex-direction:column;}
+.mvt-sectie-header{display:flex;align-items:center;justify-content:space-between;padding:14px 0 10px;margin-top:6px;border-top:2px solid var(--grijs-mid);}
+.veld-sectie-mvt{display:flex;flex-direction:column;}
 
 /* Uitvouw textarea */
 .textarea-wrap { position: relative; }
@@ -892,6 +894,32 @@ function blokHTML(b, i) {
       </div>
     </div>
 
+    <div class="mvt-sectie-header">
+      <div class="oud-sectie-titel">
+        <div class="oud-sectie-nr">MvT</div>
+        Memorie van Toelichting
+      </div>
+      <button class="knop-nvt ${b.mvtNvt ? 'actief' : ''}" onclick="toggleMvtNvt(event,${i})">
+        ${b.mvtNvt ? '✓ N.v.t.' : 'N.v.t. — niet relevant'}
+      </button>
+    </div>
+
+    <div class="veld-sectie-mvt" id="mvt-sectie-${i}" style="${b.mvtNvt ? 'display:none' : ''}">
+      <div class="veld">
+        <div class="veld-top">
+          <div class="veld-nr" style="background:#7a4a9a">7</div>
+          <div class="veld-naam" style="color:#7a4a9a">Memorie van Toelichting</div>
+          <span class="veld-hint">Toelichting bij het artikel — klikbaar op cursistenpagina</span>
+        </div>
+        <div class="textarea-wrap" id="wrap-mvt-${i}">
+          <textarea class="groot"
+            placeholder="Plak hier de relevante passage uit de Memorie van Toelichting…"
+            oninput="upd(${i},'mvt',this.value)">${e(b.mvt || "")}</textarea>
+          <button type="button" class="textarea-uitvouw" onclick="toggleGroot('mvt',${i})" title="Vergroot invoerveld">⤢</button>
+        </div>
+      </div>
+    </div>
+
     <div class="form-footer">
       <button class="knop-opslaan" onclick="slaOp(${i})">Opslaan</button>
       <div class="opslaan-ok" id="ok-${i}">
@@ -993,7 +1021,7 @@ function toggleNvt(event, i) {
 }
 
 function voegToe() {
-  data[actief].push({ naam:"", artikel:"", nieuw:"", kort:"", oud:"", oudNaam:"", oudArtikel:"", oudNvt:false, _open:true });
+  data[actief].push({ naam:"", artikel:"", nieuw:"", kort:"", oud:"", oudNaam:"", oudArtikel:"", oudNvt:false, mvt:"", mvtNvt:false, _open:true });
   opslaan(); tellingen(); render();
   setTimeout(() => {
     const blokken = document.querySelectorAll(".bev");
