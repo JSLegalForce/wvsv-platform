@@ -318,6 +318,7 @@ function renderBev() {
     btn.addEventListener("click", e => { e.stopPropagation(); switchTab(btn); });
   });
   wrap.querySelectorAll(".oud-kop").forEach(kop => kop.addEventListener("click", e => { e.stopPropagation(); toggleOud(kop); }));
+  wrap.querySelectorAll(".tab-btn").forEach(btn => btn.addEventListener("click", e => { e.stopPropagation(); switchTab(btn); }));
 }
 
 function kaartHTML(b, i) {
@@ -338,6 +339,7 @@ function kaartHTML(b, i) {
     <div class="tab-balk">
       <button class="tab-btn actief" data-tab="artikeltekst">Artikeltekst</button>
       <button class="tab-btn" data-tab="uitleg">Korte uitleg</button>
+      <button class="tab-btn" data-tab="mvt">MvT</button>
     </div>
     <div class="tab-inhoud actief" data-tab="artikeltekst">
       <div class="sectie-label">
@@ -362,6 +364,13 @@ function kaartHTML(b, i) {
         </div>`}
       </div>
     </div>
+    <div class="tab-inhoud" data-tab="mvt">
+      ${!b.mvtNvt && b.mvt ? `
+      <div class="sectie-label">Memorie van Toelichting <span class="sectie-badge">MvT</span></div>
+      <div class="mvt-blok">${e(b.mvt)}</div>
+      ` : `<div class="uitleg-blok leeg">Geen Memorie van Toelichting beschikbaar.</div>`}
+    </div>
+
     <div class="tab-inhoud" data-tab="uitleg">
       <div class="uitleg-sectie-label">
         Korte uitleg <span class="uitleg-sectie-badge">voor op straat</span>
