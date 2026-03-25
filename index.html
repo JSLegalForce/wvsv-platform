@@ -366,9 +366,11 @@ function kaartHTML(b, i) {
     </div>
     <div class="tab-inhoud" data-tab="mvt">
       ${b.mvt && b.mvtNvt !== true ? `
-      <div class="sectie-label">Memorie van Toelichting <span class="sectie-badge">MvT</span></div>
-      <div class="mvt-blok">${e(b.mvt)}</div>
-      ` : `<div class="uitleg-blok leeg">Geen Memorie van Toelichting beschikbaar.</div>`}
+        <div class="sectie-label">Memorie van Toelichting <span class="sectie-badge">MvT</span></div>
+        <div class="mvt-blok">${e(b.mvt)}</div>
+      ` : `
+        <div class="uitleg-blok leeg">Geen Memorie van Toelichting beschikbaar voor dit artikel.</div>
+      `}
     </div>
 
     <div class="tab-inhoud" data-tab="uitleg">
