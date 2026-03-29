@@ -1,12 +1,15 @@
 {
   "gewoon": [
     {
-      "naam": "",
-      "artikel": "",
-      "nieuw": "",
-      "kort": "",
-      "oud": "",
-      "watIsNieuw": "hallo"
+      "naam": "staande houden ",
+      "artikel": "1.1.1",
+      "nieuw": "hallo",
+      "kort": "nee",
+      "oud": "2222",
+      "watIsNieuw": "staande houden getuigen",
+      "mvt": "eee",
+      "oudNaam": "Staande houden",
+      "oudArtikel": "art 52"
     }
   ],
   "buitengewoon": [],
