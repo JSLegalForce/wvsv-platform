@@ -324,6 +324,7 @@ function renderBev() {
         switchTab(this);
       });
     });
+    });
   });
   wrap.querySelectorAll(".oud-kop").forEach(kop => kop.addEventListener("click", e => { e.stopPropagation(); toggleOud(kop); }));
   wrap.querySelectorAll(".tab-btn").forEach(btn => btn.addEventListener("click", e => { e.stopPropagation(); switchTab(btn); }));
@@ -363,7 +364,7 @@ function kaartHTML(b, i) {
           ${b.nieuw ? wetTekst(b.nieuw) : '<span style="color:var(--zilver);font-style:italic;font-size:0.9rem;">Nog geen tekst ingevoerd.</span>'}
         </div>
         <div class="oud-blok">
-          <div class="oud-kop" onclick="toggleOud(this)">
+          <div class="oud-kop" onclick="event.stopPropagation(); toggleOud(this)">
             <div class="oud-kop-links">
               <div class="oud-kop-regel1">${e(b.oudNaam || b.naam || "Oud artikel")}</div>
               <div class="oud-kop-regel2">Oud WvSv &nbsp;&middot;&nbsp; ${e(b.oudArtikel || '')} &nbsp;&middot;&nbsp; <span style="color:var(--rood);font-weight:600;">vervallen</span></div>
