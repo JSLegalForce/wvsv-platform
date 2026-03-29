@@ -851,10 +851,17 @@ function blokHTML(b, i) {
               <span class="veld-hint">Voeg elk artikel apart in</span>
             </div>
             <div id="sam-lijst-${i}">
-              ${(b.samArtikelen && b.samArtikelen.length ? b.samArtikelen : ['']).map((a, ai) => `
-              <div class="sam-rij" style="display:flex;gap:8px;margin-bottom:8px;">
-                <input type="text" style="flex:1;padding:9px 12px;border:2px solid var(--grijs-mid);border-radius:8px;font-family:'Outfit',sans-serif;font-size:0.88rem;color:var(--tekst);outline:none;" placeholder="bijv. Art. 1.4.8" value="${e(a)}" oninput="updSam(${i},${ai},this.value)">
-                <button type="button" onclick="verwijderSam(event,${i},${ai})" style="width:32px;height:36px;border-radius:8px;border:1px solid rgba(181,42,42,0.25);background:rgba(181,42,42,0.08);color:var(--rood);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;">&times;</button>
+              ${(b.samArtikelen && b.samArtikelen.length ? b.samArtikelen : [{naam:'',artikel:''}]).map((a, ai) => `
+              <div class="sam-rij" style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px;padding:10px 12px;background:var(--achtergrond);border-radius:8px;border:1px solid var(--grijs-mid);">
+                <div style="display:flex;gap:8px;align-items:center;">
+                  <span style="font-size:0.72rem;font-weight:700;color:#b07000;text-transform:uppercase;letter-spacing:0.08em;min-width:80px;">Naam</span>
+                  <input type="text" style="flex:1;padding:7px 10px;border:2px solid var(--grijs-mid);border-radius:8px;font-family:'Outfit',sans-serif;font-size:0.88rem;color:var(--tekst);outline:none;" placeholder="bijv. Identiteitsvaststelling" value="${e(a.naam||a)}" oninput="updSam(${i},${ai},'naam',this.value)">
+                </div>
+                <div style="display:flex;gap:8px;align-items:center;">
+                  <span style="font-size:0.72rem;font-weight:700;color:#b07000;text-transform:uppercase;letter-spacing:0.08em;min-width:80px;">Artikel</span>
+                  <input type="text" style="flex:1;padding:7px 10px;border:2px solid var(--grijs-mid);border-radius:8px;font-family:'Outfit',sans-serif;font-size:0.88rem;color:var(--tekst);outline:none;" placeholder="bijv. Art. 1.4.8" value="${e(typeof a==='object'?a.artikel||'':'')}" oninput="updSam(${i},${ai},'artikel',this.value)">
+                  <button type="button" onclick="verwijderSam(event,${i},${ai})" style="width:32px;height:32px;border-radius:8px;border:1px solid rgba(181,42,42,0.25);background:rgba(181,42,42,0.08);color:var(--rood);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;">&times;</button>
+                </div>
               </div>`).join('')
               }
             </div>
@@ -1070,15 +1077,18 @@ function toggleSamNvt(event, i) {
     }
     opslaan();
   }
-  function updSam(i, ai, waarde) {
+  function updSam(i, ai, veld, waarde) {
     if (!data[actief][i].samArtikelen) data[actief][i].samArtikelen = [];
-    data[actief][i].samArtikelen[ai] = waarde;
+    if (typeof data[actief][i].samArtikelen[ai] !== 'object') {
+      data[actief][i].samArtikelen[ai] = {naam: data[actief][i].samArtikelen[ai] || '', artikel: ''};
+    }
+    data[actief][i].samArtikelen[ai][veld] = waarde;
     opslaan();
   }
   function voegSamToe(event, i) {
     event.stopPropagation();
     if (!data[actief][i].samArtikelen) data[actief][i].samArtikelen = [];
-    data[actief][i].samArtikelen.push("");
+    data[actief][i].samArtikelen.push({naam:'',artikel:''});
     opslaan();
     render();
   }
