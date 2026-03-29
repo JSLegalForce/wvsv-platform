@@ -355,6 +355,7 @@ function kaartHTML(b, i) {
         <button class="tab-btn" data-tab="mvt">MvT</button>
       </div>
       <div class="tab-inhoud actief" data-tab="artikeltekst">
+        <div class="sectie-label" style="font-size:1.05rem;font-weight:800;color:var(--blauw);margin-bottom:16px;padding-bottom:12px;border-bottom:2px solid var(--grijs-mid);">${e(b.naam || "Bevoegdheid")}</div>
         <div class="sectie-label">Nieuw WvSv ${b.artikel ? `<span class="sectie-badge">${e(b.artikel)}</span>` : ''}</div>
         <div class="artikel-nieuw">
           ${b.nieuw ? wetTekst(b.nieuw) : '<span style="color:var(--zilver);font-style:italic;font-size:0.9rem;">Nog geen tekst ingevoerd.</span>'}
