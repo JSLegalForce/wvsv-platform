@@ -340,7 +340,7 @@ function kaartHTML(b, i) {
   <div class="bev-detail">
     <div class="tab-balk">
       <button class="tab-btn actief" data-tab="artikeltekst">Artikeltekst</button>
-              ${(b.watIsNieuw && !b.winNvt) ? '<button class="tab-btn tab-win" data-tab="watisnieuw">Wat is nieuw</button>' : ''}
+              ${b.watIsNieuw && !b.winNvt ? '<button class="tab-btn tab-win" data-tab="watisnieuw">Wat is nieuw</button>' : ''}
       <button class="tab-btn" data-tab="uitleg">Korte uitleg</button>
       <button class="tab-btn" data-tab="mvt">MvT</button>
     </div>
@@ -376,7 +376,7 @@ function kaartHTML(b, i) {
       `}
     </div>
 
-    ${(b.watIsNieuw && !b.winNvt) ? `<div class="tab-inhoud" data-tab="watisnieuw"><div class="uitleg-blok">${korteTekst(b.watIsNieuw)}</div></div>` : ''}
+    ${b.watIsNieuw && !b.winNvt ? `<div class="tab-inhoud" data-tab="watisnieuw"><div class="uitleg-blok">${korteTekst(b.watIsNieuw)}</div></div>` : ''}
         <div class="tab-inhoud" data-tab="uitleg">
       <div class="uitleg-sectie-label">
         Korte uitleg <span class="uitleg-sectie-badge">voor op straat</span>
