@@ -314,10 +314,16 @@ function renderBev() {
 
   wrap.innerHTML = filter.map((b, i) => kaartHTML(b, i)).join("");
   wrap.querySelectorAll(".bev-kop").forEach(k => {
-    k.addEventListener("click", () => toggleKaart(k.closest(".bev-kaart")));
-  });
+      k.addEventListener("click", function() {
+        this.parentElement.classList.toggle("open");
+      });
+    });
   wrap.querySelectorAll(".tab-btn").forEach(btn => {
-    btn.addEventListener("click", e => { e.stopPropagation(); switchTab(btn); });
+      btn.addEventListener("click", function(e) {
+        e.stopPropagation();
+        switchTab(this);
+      });
+    });
   });
   wrap.querySelectorAll(".oud-kop").forEach(kop => kop.addEventListener("click", e => { e.stopPropagation(); toggleOud(kop); }));
   wrap.querySelectorAll(".tab-btn").forEach(btn => btn.addEventListener("click", e => { e.stopPropagation(); switchTab(btn); }));
@@ -399,8 +405,7 @@ function kaartHTML(b, i) {
     </div>
   </div>`;
 }
-function toggleKaart(kaart) { kaart.classList.toggle("open"); }
-
+function toggleKaart(kaart) { if (kaart) kaart.classList.toggle("open"); }
 function toggleOud(kop) {
   const blok = kop.nextElementSibling;
   if (!blok) return;
