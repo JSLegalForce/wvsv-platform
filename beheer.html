@@ -851,7 +851,7 @@ function blokHTML(b, i) {
               <span class="veld-hint">Zichtbaar als knop op cursistenpagina</span>
             </div>
             <div class="textarea-wrap" id="wrap-win-${i}">
-              <textarea class="groot" placeholder="Beschrijf wat er nieuw is ten opzichte van het oude wetboek…" oninput="upd(${i},'watIsNieuw',this.value)">${e(b.watIsNieuw || '')}</textarea>
+              <textarea class="groot" placeholder="Beschrijf wat er nieuw is..." oninput="upd(${i},'watIsNieuw',this.value)">${e(b.watIsNieuw || '')}</textarea>
               <button type="button" class="textarea-uitvouw" onclick="toggleGroot('win',${i})" title="Vergroot/verklein">⧂</button>
             </div>
           </div>
