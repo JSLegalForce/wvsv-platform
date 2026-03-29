@@ -135,7 +135,7 @@ body{font-family:'Outfit',sans-serif;background:var(--achtergrond);color:var(--t
 .oud-kop-regel2{font-size:0.8rem;color:var(--tekst-mid);}
 .oud-kop-naam{flex:1;font-size:0.88rem;font-weight:600;color:var(--tekst-mid);}
 .oud-kop-links{flex:1;display:flex;flex-direction:column;gap:3px;}
-.sam-blok{margin-top:14px;padding:14px 16px;background:var(--achtergrond);border-radius:9px;border-left:3px solid #b07000;}
+.sam-blok{margin-top:6px;padding:14px 16px;background:var(--achtergrond);border-radius:9px;border-left:3px solid #b07000;}
 .sam-titel{font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#b07000;margin-bottom:10px;}
 .sam-chips{display:flex;flex-wrap:wrap;gap:7px;}
 .sam-chip{display:inline-block;padding:5px 13px;background:#fff8ec;border:1px solid #e8c870;border-radius:20px;font-size:0.82rem;font-weight:700;color:#7a5000;letter-spacing:0.01em;}
@@ -371,8 +371,10 @@ function kaartHTML(b, i) {
           ${heeftOud ? `<div class="oud-tekst-blok"><div class="oud-tekst">${e(b.oud)}</div></div>` : `<div class="oud-tekst-blok zichtbaar"><div class="oud-leeg">Geen oud artikel opgegeven.</div></div>`}
         </div>
         ${(b.samArtikelen && b.samArtikelen.filter(a=>a.trim()).length && !b.samNvt) ? `
+        <div class="sectie-label" style="margin-top:14px;">
+          Samenhangende artikelen
+        </div>
         <div class="sam-blok">
-          <div class="sam-titel">Samenhangende artikelen</div>
           <div class="sam-chips">
             ${b.samArtikelen.filter(a=>a.trim()).map(a => `<span class="sam-chip">${e(a)}</span>`).join("")}
           </div>
