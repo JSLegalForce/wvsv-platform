@@ -1,1 +1,484 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wetboek van Strafvordering â JS Legal Force</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --blauw:       rgb(26,42,94);
+  --blauw-mid:   rgb(36,53,128);
+  --blauw-licht: rgb(45,64,153);
+  --zilver:      rgb(138,154,181);
+  --achtergrond: rgb(242,244,248);
+  --grijs-mid:   rgb(221,226,239);
+  --wit:         #ffffff;
+  --tekst:       rgb(26,42,94);
+  --tekst-mid:   rgb(74,85,120);
+  --groen:       rgb(26,122,74);
+  --groen-licht: rgb(230,244,237);
+  --rood:        rgb(181,42,42);
+  --rood-licht:  rgb(250,234,234);
+  --shadow:      0 4px 24px rgba(26,42,94,0.10);
+  --radius:      12px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html{font-size:16px;scroll-behavior:smooth;}
+body{font-family:'Outfit',sans-serif;background:var(--achtergrond);color:var(--tekst);min-height:100vh;display:flex;flex-direction:column;}
 
+/* ââ Header ââ */
+.header{background:var(--blauw);}
+.header-inner{display:flex;align-items:center;justify-content:center;gap:14px;padding:16px 24px;}
+.header-schild{width:36px;height:42px;flex-shrink:0;}
+.header-naam{font-weight:700;font-size:1.35rem;letter-spacing:0.04em;color:var(--wit);}
+.header-lijn{height:3px;background:linear-gradient(90deg,transparent,var(--zilver),transparent);opacity:0.4;}
+.header-sub{text-align:center;padding:0 24px 13px;font-size:0.78rem;color:rgba(255,255,255,0.55);letter-spacing:0.08em;text-transform:uppercase;font-weight:500;}
+
+/* ââ Startscherm ââ */
+#scherm-start{flex:1;display:flex;align-items:center;justify-content:center;padding:32px 16px;}
+.start-kaart{background:var(--wit);border-radius:var(--radius);box-shadow:var(--shadow);border-top:4px solid var(--blauw);padding:40px;width:100%;max-width:560px;text-align:center;}
+.start-badge{display:inline-block;background:var(--blauw);color:var(--zilver);font-size:0.72rem;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;padding:5px 14px;border-radius:4px;margin-bottom:20px;}
+.start-titel{font-weight:800;font-size:1.8rem;color:var(--blauw);margin-bottom:10px;}
+.start-sub{font-size:0.95rem;color:var(--tekst-mid);margin-bottom:32px;line-height:1.6;}
+.rol-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px;}
+@media(max-width:480px){.rol-grid{grid-template-columns:1fr;}}
+.rol-knop{display:flex;align-items:center;gap:10px;padding:13px 16px;background:var(--achtergrond);border:2px solid var(--grijs-mid);border-radius:9px;cursor:pointer;text-align:left;transition:all 0.2s;font-family:'Outfit',sans-serif;}
+.rol-knop:hover{background:#eef1f9;border-color:var(--blauw-licht);}
+.rol-bol{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+.rol-knop-naam{font-size:0.88rem;font-weight:700;color:var(--tekst);}
+
+/* ââ Bevoegdhedenscherm ââ */
+#scherm-bev{display:none;flex:1;flex-direction:column;}
+.bev-header{background:var(--blauw);padding:12px 24px;display:flex;align-items:center;gap:12px;}
+.terug-knop{display:flex;align-items:center;gap:6px;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);border-radius:7px;padding:7px 13px;color:var(--wit);font-family:'Outfit',sans-serif;font-size:0.82rem;font-weight:600;cursor:pointer;transition:all 0.2s;}
+.terug-knop:hover{background:rgba(255,255,255,0.2);}
+.bev-header-rol{display:flex;align-items:center;gap:8px;flex:1;}
+.bev-header-bol{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+.bev-header-naam{font-weight:700;font-size:1rem;color:var(--wit);}
+.bev-count{font-size:0.75rem;color:rgba(255,255,255,0.55);background:rgba(255,255,255,0.1);padding:3px 10px;border-radius:20px;}
+
+/* Zoekbalk */
+.zoek-wrap{padding:16px 20px 10px;max-width:860px;margin:0 auto;width:100%;}
+.zoek-inner{display:flex;align-items:center;gap:8px;background:var(--wit);border:2px solid var(--grijs-mid);border-radius:9px;padding:9px 14px;transition:border-color 0.2s;}
+.zoek-inner:focus-within{border-color:var(--blauw-licht);}
+.zoek-inner svg{color:var(--zilver);flex-shrink:0;}
+#zoek-input{flex:1;border:none;outline:none;font-family:'Outfit',sans-serif;font-size:0.95rem;color:var(--tekst);background:transparent;}
+#zoek-input::placeholder{color:var(--zilver);}
+
+/* Lijst */
+.bev-lijst{flex:1;padding:0 20px 40px;max-width:860px;margin:0 auto;width:100%;display:flex;flex-direction:column;gap:10px;}
+
+/* Bevoegdheid kaart */
+.bev-kaart{background:var(--wit);border-radius:var(--radius);box-shadow:var(--shadow);border-top:4px solid var(--blauw);overflow:hidden;transition:box-shadow 0.2s;}
+.bev-kaart:hover{box-shadow:0 6px 28px rgba(26,42,94,0.14);}
+.bev-kaart.open{border-top-color:var(--blauw-licht);}
+.bev-kop{display:flex;align-items:center;gap:12px;padding:15px 20px;cursor:pointer;user-select:none;}
+.bev-nr{width:28px;height:28px;border-radius:50%;background:var(--blauw);color:var(--wit);display:flex;align-items:center;justify-content:center;font-size:0.8rem;font-weight:800;flex-shrink:0;}
+.bev-naam-wrap{flex:1;}
+.bev-naam{font-size:0.95rem;font-weight:700;color:var(--tekst);}
+.bev-art{font-size:0.72rem;font-weight:700;background:var(--achtergrond);color:var(--blauw);padding:2px 8px;border-radius:4px;border:1px solid var(--grijs-mid);white-space:nowrap;}
+.bev-chev{color:var(--zilver);flex-shrink:0;transition:transform 0.2s;}
+.bev-kaart.open .bev-chev{transform:rotate(180deg);color:var(--blauw);}
+
+/* Detail */
+.bev-detail{display:none;border-top:2px solid var(--grijs-mid);}
+.bev-kaart.open .bev-detail{display:block;}
+
+/* Tabs */
+.tab-balk{display:flex;border-bottom:2px solid var(--grijs-mid);padding:0 20px;overflow-x:auto;}
+.tab-balk::-webkit-scrollbar{display:none;}
+.tab-btn{font-family:'Outfit',sans-serif;font-size:0.78rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--tekst-mid);background:none;border:none;border-bottom:2px solid transparent;margin-bottom:-2px;padding:10px 14px;cursor:pointer;transition:all 0.15s;white-space:nowrap;}
+.tab-btn:hover{color:var(--blauw);}
+.tab-btn.actief{color:var(--blauw);border-bottom-color:var(--blauw);}
+.tab-btn--win{color:var(--groen);}
+.tab-btn--win.actief{color:var(--groen);border-bottom-color:var(--groen);}
+
+.tab-inhoud{display:none;padding:20px;}
+.tab-inhoud.actief{display:block;}
+
+/* Artikeltekst kolommen */
+.art-grid{display:grid;grid-template-columns:3fr 2fr;gap:14px;}
+@media(max-width:600px){.art-grid{grid-template-columns:1fr;}}
+.art-col{background:var(--achtergrond);border-radius:9px;overflow:hidden;border:1px solid var(--grijs-mid);}
+.art-col-kop{font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;padding:8px 13px;border-bottom:1px solid var(--grijs-mid);}
+.art-col-kop.oud{color:var(--tekst-mid);}
+.art-col-kop.nieuw{color:var(--blauw-licht);}
+.art-col-tekst{padding:16px 18px;font-size:0.9rem;color:var(--tekst);}
+.wet-lid{display:flex;gap:0.5em;margin-bottom:14px;line-height:1.8;}
+.wet-lid:last-child{margin-bottom:0;}
+.wet-lid-nr{font-weight:800;color:var(--blauw);flex-shrink:0;min-width:1.6em;}
+.wet-lid-tekst{flex:1;}
+.wet-alinea{line-height:1.8;}
+.art-col-tekst.leeg{color:var(--zilver);font-style:italic;padding:14px 16px;}
+.art-col-tekst.leeg{color:var(--zilver);font-style:italic;}
+
+/* Uitleg blok */
+.oud-sectie-label{display:none;}
+.oud-sectie-badge{background:var(--achtergrond);color:var(--tekst-mid);padding:2px 8px;border-radius:4px;font-size:0.72rem;font-weight:700;border:1px solid var(--grijs-mid);}
+.oud-vervallen{background:var(--rood-licht);color:var(--rood);border-color:rgba(181,42,42,0.2);}
+.sectie-label{font-size:0.78rem;font-weight:700;color:var(--blauw);margin-bottom:10px;display:flex;align-items:center;gap:8px;}
+.sectie-badge{background:#eef1f9;color:var(--blauw);padding:2px 8px;border-radius:4px;font-size:0.7rem;font-weight:700;}
+.artikel-nieuw{background:#f4f6fc;border-radius:9px;border-left:3px solid var(--blauw);padding:16px 18px;margin-bottom:18px;}
+.wet-lid{display:flex;gap:10px;margin-bottom:12px;line-height:1.8;font-size:0.92rem;color:var(--tekst);}
+.wet-lid:last-child{margin-bottom:0;}
+.wet-lid-nr{font-weight:700;color:var(--blauw);flex-shrink:0;min-width:20px;}
+.wet-lid-tekst{flex:1;}
+.wet-alinea{font-size:0.92rem;line-height:1.8;color:var(--tekst);}
+.oud-blok{border:1px solid var(--grijs-mid);border-radius:9px;overflow:hidden;}
+.oud-kop{display:flex;align-items:center;gap:12px;padding:11px 14px;cursor:pointer;background:var(--achtergrond);user-select:none;transition:background 0.15s;}
+.oud-kop:hover{background:#e8ecf5;}
+.oud-art-tag{font-size:0.72rem;font-weight:700;color:var(--tekst-mid);background:var(--wit);border:1px solid var(--grijs-mid);padding:2px 9px;border-radius:4px;white-space:nowrap;flex-shrink:0;}
+.oud-kop-links{display:flex;flex-direction:column;gap:3px;flex:1;}
+.oud-kop-regel1{font-size:0.88rem;font-weight:600;color:var(--tekst);}
+.oud-kop-regel2{font-size:0.8rem;color:var(--tekst-mid);}
+.oud-kop-naam{flex:1;font-size:0.88rem;font-weight:600;color:var(--tekst-mid);}
+.oud-kop-links{flex:1;display:flex;flex-direction:column;gap:3px;}
+.oud-kop-regel1{font-size:0.88rem;font-weight:600;color:var(--tekst);}
+.oud-kop-regel2{font-size:0.75rem;color:var(--tekst-mid);}
+.oud-kop-hint{font-size:0.75rem;color:var(--zilver);white-space:nowrap;}
+.oud-pijl{font-size:0.75rem;color:var(--zilver);transition:transform 0.2s;flex-shrink:0;}
+.oud-kop.open .oud-pijl{transform:rotate(180deg);}
+.oud-kop.open .oud-kop-hint{display:none;}
+.oud-tekst-blok{display:none;padding:14px 16px;border-top:1px solid var(--grijs-mid);background:var(--wit);}
+.oud-tekst-blok.zichtbaar{display:block;}
+.oud-tekst{font-size:0.88rem;color:var(--tekst-mid);line-height:1.8;}
+.oud-leeg{font-size:0.88rem;color:var(--zilver);font-style:italic;}
+.uitleg-blok{background:var(--achtergrond);border-radius:9px;border-left:4px solid var(--blauw);padding:14px 16px;font-size:0.9rem;line-height:1.75;color:var(--tekst);}
+.uitleg-blok.leeg{color:var(--zilver);font-style:italic;}
+
+/* Leeg state */
+.leeg-state{text-align:center;padding:48px 20px;color:var(--tekst-mid);}
+.leeg-state strong{display:block;font-size:1rem;font-weight:800;color:var(--blauw);margin-bottom:6px;}
+
+/* Footer */
+.footer{text-align:center;padding:16px;font-size:0.74rem;color:var(--tekst-mid);opacity:0.55;border-top:1px solid var(--grijs-mid);}
+
+@media(max-width:560px){
+  .start-kaart{padding:28px 18px;}
+  .bev-kop{padding:13px 14px;}
+  .tab-inhoud{padding:14px;}
+  .zoek-wrap,.bev-lijst{padding-left:14px;padding-right:14px;}
+}
+</style>
+</head>
+<body>
+
+<!-- ââ Header ââ -->
+<header class="header">
+  <div class="header-inner">
+    <svg class="header-schild" viewBox="0 0 36 42" fill="none">
+      <path d="M18 0L36 8V22C36 32 28 39 18 42C8 39 0 32 0 22V8L18 0Z" fill="#8a9ab5" opacity="0.3"/>
+      <path d="M18 3L33 10V22C33 31 26 37.5 18 40C10 37.5 3 31 3 22V10L18 3Z" fill="#8a9ab5" opacity="0.5"/>
+      <text x="18" y="27" text-anchor="middle" font-family="Outfit,sans-serif" font-weight="800" font-size="14" fill="white">JS</text>
+    </svg>
+    <span class="header-naam">Legal Force</span>
+  </div>
+  <div class="header-lijn"></div>
+  <p class="header-sub">Wetboek van Strafvordering 2029</p>
+</header>
+
+<!-- ââ Startscherm: Rol kiezen ââ -->
+<div id="scherm-start">
+  <div class="start-kaart">
+    <span class="start-badge">Nieuw Wetboek van Strafvordering</span>
+    <h1 class="start-titel">Wat is jouw rol?</h1>
+    <p class="start-sub">Kies je rol en zie direct welke bevoegdheden op jou van toepassing zijn.</p>
+    <div class="rol-grid" id="rol-grid">
+      <!-- Wordt gevuld door JS -->
+    </div>
+  </div>
+</div>
+
+<!-- ââ Bevoegdhedenscherm ââ -->
+<div id="scherm-bev">
+  <div class="bev-header">
+    <button class="terug-knop" onclick="terug()">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+        <path d="M9 3L5 7l4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      Terug
+    </button>
+    <div class="bev-header-rol">
+      <div class="bev-header-bol" id="hdr-bol"></div>
+      <div class="bev-header-naam" id="hdr-naam"></div>
+    </div>
+    <div class="bev-count" id="hdr-count"></div>
+  </div>
+
+  <div class="zoek-wrap">
+    <div class="zoek-inner">
+      <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
+        <circle cx="6" cy="6" r="4.5" stroke="currentColor" stroke-width="1.4"/>
+        <path d="M9.5 9.5L13 13" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+      </svg>
+      <input id="zoek-input" type="text" placeholder="Zoek op bevoegdheid of trefwoordâ¦" oninput="zoek()">
+    </div>
+  </div>
+
+  <div class="bev-lijst" id="bev-lijst"></div>
+</div>
+
+<footer class="footer">JS Legal Force â Wetboek van Strafvordering 2029</footer>
+
+<script>
+/* ââââââââ DATA ââââââââ */
+const ROLLEN = {
+  gewoon:       { naam:"Gewoon opsporingsambtenaar",        kleur:"#2d4099" },
+  buitengewoon: { naam:"Buitengewoon opsporingsambtenaar",  kleur:"#4a5578" },
+  hulpofficier: { naam:"Hulpofficier van justitie",         kleur:"#e6960a" },
+  officier:     { naam:"Officier van justitie",             kleur:"#1a7a4a" },
+  rc:           { naam:"Rechter-commissaris",               kleur:"#7a4a9a" },
+  advocaat:     { naam:"Advocaat",                          kleur:"#b52a2a" },
+  verdachte:    { naam:"Verdachte",                         kleur:"#8a9ab5" },
+  getuige:      { naam:"Getuige",                           kleur:"#8a9ab5" },
+  aangever:     { naam:"Aangever",                          kleur:"#8a9ab5" }
+};
+
+let actieveRol = null;
+let alleData   = {};
+let zoekterm   = "";
+
+/* ââââââââ DATA LADEN ââââââââ */
+async function laadData() {
+  try {
+    const r = await fetch("data.json");
+    if (r.ok) {
+      alleData = await r.json();
+    }
+  } catch(e) {
+    // data.json niet gevonden â gebruik lege data
+    alleData = {};
+  }
+  Object.keys(ROLLEN).forEach(k => { if (!alleData[k]) alleData[k] = []; });
+  renderRollen();
+}
+
+/* ââââââââ STARTSCHERM ââââââââ */
+function renderRollen() {
+  const grid = document.getElementById("rol-grid");
+  grid.innerHTML = Object.entries(ROLLEN).map(([k, r]) => {
+    const n = (alleData[k] || []).length;
+    return `
+      <button class="rol-knop" onclick="openRol('${k}')">
+        <div class="rol-bol" style="background:${r.kleur}"></div>
+        <div>
+          <div class="rol-knop-naam">${r.naam}</div>
+          ${n ? `<div style="font-size:0.72rem;color:var(--tekst-mid);margin-top:2px">${n} bevoegdheid${n!==1?"en":""}</div>` : ""}
+        </div>
+      </button>`;
+  }).join("");
+}
+
+function openRol(rol) {
+  actieveRol = rol;
+  zoekterm   = "";
+  document.getElementById("zoek-input").value = "";
+  const r = ROLLEN[rol];
+  document.getElementById("hdr-bol").style.background  = r.kleur;
+  document.getElementById("hdr-naam").textContent       = r.naam;
+  document.getElementById("scherm-start").style.display = "none";
+  document.getElementById("scherm-bev").style.display   = "flex";
+  renderBev();
+  window.scrollTo(0,0);
+}
+
+function terug() {
+  document.getElementById("scherm-start").style.display = "flex";
+  document.getElementById("scherm-bev").style.display   = "none";
+  actieveRol = null;
+}
+
+/* ââââââââ BEVOEGDHEDEN ââââââââ */
+function zoek() {
+  zoekterm = document.getElementById("zoek-input").value.trim().toLowerCase();
+  renderBev();
+}
+
+function renderBev() {
+  const lijst  = (alleData[actieveRol] || []);
+  const filter = zoekterm
+    ? lijst.filter(b =>
+        (b.naam||"").toLowerCase().includes(zoekterm) ||
+        (b.artikel||"").toLowerCase().includes(zoekterm) ||
+        (b.nieuw||"").toLowerCase().includes(zoekterm) ||
+        (b.kort||"").toLowerCase().includes(zoekterm) ||
+        (b.oud||"").toLowerCase().includes(zoekterm))
+    : lijst;
+
+  document.getElementById("hdr-count").textContent = `${filter.length} bevoegdheid${filter.length!==1?"en":""}`;
+
+  const wrap = document.getElementById("bev-lijst");
+  if (!filter.length) {
+    wrap.innerHTML = `<div class="leeg-state"><strong>${zoekterm ? "Geen resultaten" : "Nog geen bevoegdheden"}</strong>${zoekterm ? "Probeer een andere zoekterm." : "Bevoegdheden worden binnenkort toegevoegd."}</div>`;
+    return;
+  }
+
+  wrap.innerHTML = filter.map((b, i) => kaartHTML(b, i)).join("");
+  wrap.querySelectorAll(".bev-kop").forEach(k => {
+    k.addEventListener("click", () => toggleKaart(k.closest(".bev-kaart")));
+  });
+  wrap.querySelectorAll(".tab-btn").forEach(btn => {
+    btn.addEventListener("click", e => { e.stopPropagation(); switchTab(btn); });
+  });
+  wrap.querySelectorAll(".oud-kop").forEach(kop => kop.addEventListener("click", e => { e.stopPropagation(); toggleOud(kop); }));
+  wrap.querySelectorAll(".tab-btn").forEach(btn => btn.addEventListener("click", e => { e.stopPropagation(); switchTab(btn); }));
+}
+
+function kaartHTML(b, i) {
+  const heeftOud = b.oud && b.oud.trim();
+  const oudNvt = b.oudNvt === true;
+  const oudNaam = b.oudNaam || b.naam || "Oud artikel";
+  return `
+<div class="bev-kaart">
+  <div class="bev-kop">
+    <div class="bev-nr">${i+1}</div>
+    <div class="bev-naam">${e(b.naam||"Bevoegdheid")}</div>
+    ${b.artikel ? `<div class="bev-art">${e(b.artikel)}</div>` : ""}
+    <svg class="bev-chev" width="16" height="16" viewBox="0 0 16 16" fill="none">
+      <path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  </div>
+  <div class="bev-detail">
+    <div class="tab-balk">
+      <button class="tab-btn actief" data-tab="artikeltekst">Artikeltekst</button>
+      <button class="tab-btn" data-tab="uitleg">Korte uitleg</button>
+      <button class="tab-btn" data-tab="mvt">MvT</button>
+      ${(b.watIsNieuw && !b.winNvt) ? '<button class="tab-btn tab-btn--win" data-tab="watisnieuw">Wat is nieuw</button>' : ''}
+    </div>
+    <div class="tab-inhoud actief" data-tab="artikeltekst">
+      <div class="sectie-label">
+        Nieuw WvSv ${b.artikel ? `<span class="sectie-badge">${e(b.artikel)}</span>` : ""}
+      </div>
+      <div class="artikel-nieuw">
+        ${b.nieuw ? wetTekst(b.nieuw) : '<span style="color:var(--zilver);font-style:italic;font-size:0.9rem;">Nog geen tekst ingevoerd.</span>'}
+      </div>
+      <div class="oud-sectie-label">Oud WvSv ${b.oudArtikel ? `<span class="oud-sectie-badge">${e(b.oudArtikel)}</span>` : ''}<span class="oud-sectie-badge oud-vervallen">vervallen</span></div>
+      <div class="oud-blok">
+        <div class="oud-kop">
+          <div class="oud-kop-links">
+                <div class="oud-kop-regel1">${e(b.oudNaam || b.naam || "Oud artikel")}</div>
+                <div class="oud-kop-regel2">Oud WvSv &nbsp;&middot;&nbsp; ${e(b.oudArtikel || '')} &nbsp;&middot;&nbsp; <span style="color:var(--rood);font-weight:600;">vervallen</span></div>
+              </div>
+          ${heeftOud ? '<div class="oud-kop-hint">Klik voor volledige tekst</div>' : ''}
+          <div class="oud-pijl">${heeftOud ? "â¼" : "â"}</div>
+        </div>
+        ${heeftOud ? `
+        <div class="oud-tekst-blok">
+          <div class="oud-tekst">${e(b.oud)}</div>
+        </div>` : `
+        <div class="oud-tekst-blok zichtbaar">
+          <div class="oud-leeg">Geen oud artikel opgegeven.</div>
+        </div>`}
+      </div>
+    </div>
+    <div class="tab-inhoud" data-tab="mvt">
+      ${b.mvt && b.mvtNvt !== true ? `
+        <div class="sectie-label">Memorie van Toelichting <span class="sectie-badge">MvT</span></div>
+        <div class="mvt-blok">${e(b.mvt)}</div>
+      ` : `
+        <div class="uitleg-blok leeg">Geen Memorie van Toelichting beschikbaar voor dit artikel.</div>
+      `}
+    </div>
+
+    <div class="tab-inhoud" data-tab="uitleg">
+      <div class="uitleg-sectie-label">
+        Korte uitleg <span class="uitleg-sectie-badge">voor op straat</span>
+      </div>
+      <div class="uitleg-blok${b.kort ? '' : ' leeg'}">
+        ${b.kort ? korteTekst(b.kort) : '<span style="color:var(--zilver);font-style:italic;font-size:0.92rem;">Nog geen uitleg toegevoegd.</span>'}
+      </div>
+    </div>
+    ${(b.watIsNieuw && !b.winNvt) ? `<div class="tab-inhoud" data-tab="watisnieuw">
+      <div class="uitleg-blok">
+        ${korteTekst(b.watIsNieuw)}
+      </div>
+    </div>` : ''}
+  </div>
+</div>`;
+}
+
+function toggleKaart(kaart) { kaart.classList.toggle("open"); }
+
+function toggleOud(kop) {
+  const blok = kop.nextElementSibling;
+  if (!blok) return;
+  const open = blok.classList.contains("zichtbaar");
+  blok.classList.toggle("zichtbaar", !open);
+  kop.classList.toggle("open", !open);
+  const hint = kop.querySelector(".oud-kop-hint");
+  if (hint) hint.textContent = open ? "Klik voor volledige tekst" : "Klik om te sluiten";
+}
+
+function switchTab(btn) {
+  const detail = btn.closest(".bev-detail");
+  const tab    = btn.dataset.tab;
+  detail.querySelectorAll(".tab-btn").forEach(b => b.classList.toggle("actief", b.dataset.tab===tab));
+  detail.querySelectorAll(".tab-inhoud").forEach(p => p.classList.toggle("actief", p.dataset.tab===tab));
+}
+
+function korteTekst(tekst) {
+  const clean = tekst.replace(/\r\n|\r/g,'\n').trim();
+  const regels = clean.split('\n').filter(r => r.trim());
+  if (regels.length <= 1) return '<p class="uitleg-alinea">' + e(clean) + '</p>';
+  return regels.map(r => '<p class="uitleg-alinea">' + e(r.trim()) + '</p>').join('');
+}
+
+function wetTekst(tekst) {
+  const clean = tekst.replace(/\r\n|\r/g, '\n').replace(/\n+/g, '\n').trim();
+  // Splits op "1. " "2. " etc â ook midden in tekst
+  const parts = clean.split(/(?=(?:^|(?<=\s))(\d+)\. )/);
+  // Alternatief: regex die splitst op genummerde leden
+  const lidRe = /^(\d+)\.\s+/;
+  const regels = clean.split('\n');
+  
+  // Bouw leden op: als een regel begint met een cijfer+punt, is het een nieuw lid
+  const leden = [];
+  let huidigLid = null;
+  
+  for (const regel of regels) {
+    const m = regel.match(/^(\d+)\.\s+(.*)/);
+    if (m) {
+      if (huidigLid) leden.push(huidigLid);
+      huidigLid = { nr: m[1], tekst: m[2] };
+    } else if (huidigLid) {
+      huidigLid.tekst += ' ' + regel.trim();
+    } else {
+      // Tekst vÃ³Ã³r eerste lid â of geen lidnummers
+      if (leden.length === 0 && !huidigLid) {
+        huidigLid = { nr: null, tekst: regel };
+      }
+    }
+  }
+  if (huidigLid) leden.push(huidigLid);
+  
+  if (leden.length === 0) return '<p class="wet-alinea">' + e(clean) + '</p>';
+  
+  // Als er geen genummerde leden zijn, probeer te splitsen op "N. " patroon in lopende tekst
+  if (leden.length === 1 && leden[0].nr === null) {
+    const inlineSplit = clean.split(/(?=\b\d+\.\s)/);
+    if (inlineSplit.length > 1) {
+      return inlineSplit.map(deel => {
+        const im = deel.match(/^(\d+)\.\s+(.*)/s);
+        if (im) return '<div class="wet-lid"><span class="wet-lid-nr">' + im[1] + '.</span><span class="wet-lid-tekst">' + e(im[2].trim()) + '</span></div>';
+        return deel.trim() ? '<p class="wet-alinea">' + e(deel.trim()) + '</p>' : '';
+      }).join('');
+    }
+    return '<p class="wet-alinea">' + e(clean) + '</p>';
+  }
+  
+  return leden.map(lid => {
+    if (lid.nr === null) return '<p class="wet-alinea">' + e(lid.tekst) + '</p>';
+    return '<div class="wet-lid"><span class="wet-lid-nr">' + lid.nr + '.</span><span class="wet-lid-tekst">' + e(lid.tekst.trim()) + '</span></div>';
+  }).join('');
+}
+
+function e(s) {
+  return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+}
+
+laadData();
+</script>
+</body>
+</html>
