@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Wetboek van Strafvordering â JS Legal Force</title>
+<title>Wetboek van Strafvordering – JS Legal Force</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
@@ -28,7 +28,7 @@
 html{font-size:16px;scroll-behavior:smooth;}
 body{font-family:'Outfit',sans-serif;background:var(--achtergrond);color:var(--tekst);min-height:100vh;display:flex;flex-direction:column;}
 
-/* ââ Header ââ */
+/* ── Header ── */
 .header{background:var(--blauw);}
 .header-inner{display:flex;align-items:center;justify-content:center;gap:14px;padding:16px 24px;}
 .header-schild{width:36px;height:42px;flex-shrink:0;}
@@ -36,7 +36,7 @@ body{font-family:'Outfit',sans-serif;background:var(--achtergrond);color:var(--t
 .header-lijn{height:3px;background:linear-gradient(90deg,transparent,var(--zilver),transparent);opacity:0.4;}
 .header-sub{text-align:center;padding:0 24px 13px;font-size:0.78rem;color:rgba(255,255,255,0.55);letter-spacing:0.08em;text-transform:uppercase;font-weight:500;}
 
-/* ââ Startscherm ââ */
+/* ── Startscherm ── */
 #scherm-start{flex:1;display:flex;align-items:center;justify-content:center;padding:32px 16px;}
 .start-kaart{background:var(--wit);border-radius:var(--radius);box-shadow:var(--shadow);border-top:4px solid var(--blauw);padding:40px;width:100%;max-width:560px;text-align:center;}
 .start-badge{display:inline-block;background:var(--blauw);color:var(--zilver);font-size:0.72rem;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;padding:5px 14px;border-radius:4px;margin-bottom:20px;}
@@ -49,7 +49,7 @@ body{font-family:'Outfit',sans-serif;background:var(--achtergrond);color:var(--t
 .rol-bol{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
 .rol-knop-naam{font-size:0.88rem;font-weight:700;color:var(--tekst);}
 
-/* ââ Bevoegdhedenscherm ââ */
+/* ── Bevoegdhedenscherm ── */
 #scherm-bev{display:none;flex:1;flex-direction:column;}
 .bev-header{background:var(--blauw);padding:12px 24px;display:flex;align-items:center;gap:12px;}
 .terug-knop{display:flex;align-items:center;gap:6px;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);border-radius:7px;padding:7px 13px;color:var(--wit);font-family:'Outfit',sans-serif;font-size:0.82rem;font-weight:600;cursor:pointer;transition:all 0.2s;}
@@ -162,7 +162,7 @@ body{font-family:'Outfit',sans-serif;background:var(--achtergrond);color:var(--t
 </head>
 <body>
 
-<!-- ââ Header ââ -->
+<!-- ── Header ── -->
 <header class="header">
   <div class="header-inner">
     <svg class="header-schild" viewBox="0 0 36 42" fill="none">
@@ -176,7 +176,7 @@ body{font-family:'Outfit',sans-serif;background:var(--achtergrond);color:var(--t
   <p class="header-sub">Wetboek van Strafvordering 2029</p>
 </header>
 
-<!-- ââ Startscherm: Rol kiezen ââ -->
+<!-- ── Startscherm: Rol kiezen ── -->
 <div id="scherm-start">
   <div class="start-kaart">
     <span class="start-badge">Nieuw Wetboek van Strafvordering</span>
@@ -188,7 +188,7 @@ body{font-family:'Outfit',sans-serif;background:var(--achtergrond);color:var(--t
   </div>
 </div>
 
-<!-- ââ Bevoegdhedenscherm ââ -->
+<!-- ── Bevoegdhedenscherm ── -->
 <div id="scherm-bev">
   <div class="bev-header">
     <button class="terug-knop" onclick="terug()">
@@ -210,17 +210,17 @@ body{font-family:'Outfit',sans-serif;background:var(--achtergrond);color:var(--t
         <circle cx="6" cy="6" r="4.5" stroke="currentColor" stroke-width="1.4"/>
         <path d="M9.5 9.5L13 13" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
       </svg>
-      <input id="zoek-input" type="text" placeholder="Zoek op bevoegdheid of trefwoordâ¦" oninput="zoek()">
+      <input id="zoek-input" type="text" placeholder="Zoek op bevoegdheid of trefwoord…" oninput="zoek()">
     </div>
   </div>
 
   <div class="bev-lijst" id="bev-lijst"></div>
 </div>
 
-<footer class="footer">JS Legal Force â Wetboek van Strafvordering 2029</footer>
+<footer class="footer">JS Legal Force – Wetboek van Strafvordering 2029</footer>
 
 <script>
-/* ââââââââ DATA ââââââââ */
+/* ════════ DATA ════════ */
 const ROLLEN = {
   gewoon:       { naam:"Gewoon opsporingsambtenaar",        kleur:"#2d4099" },
   buitengewoon: { naam:"Buitengewoon opsporingsambtenaar",  kleur:"#4a5578" },
@@ -237,7 +237,7 @@ let actieveRol = null;
 let alleData   = {};
 let zoekterm   = "";
 
-/* ââââââââ DATA LADEN ââââââââ */
+/* ════════ DATA LADEN ════════ */
 async function laadData() {
   try {
     const r = await fetch("data.json");
@@ -245,14 +245,14 @@ async function laadData() {
       alleData = await r.json();
     }
   } catch(e) {
-    // data.json niet gevonden â gebruik lege data
+    // data.json niet gevonden — gebruik lege data
     alleData = {};
   }
   Object.keys(ROLLEN).forEach(k => { if (!alleData[k]) alleData[k] = []; });
   renderRollen();
 }
 
-/* ââââââââ STARTSCHERM ââââââââ */
+/* ════════ STARTSCHERM ════════ */
 function renderRollen() {
   const grid = document.getElementById("rol-grid");
   grid.innerHTML = Object.entries(ROLLEN).map(([k, r]) => {
@@ -287,7 +287,7 @@ function terug() {
   actieveRol = null;
 }
 
-/* ââââââââ BEVOEGDHEDEN ââââââââ */
+/* ════════ BEVOEGDHEDEN ════════ */
 function zoek() {
   zoekterm = document.getElementById("zoek-input").value.trim().toLowerCase();
   renderBev();
@@ -356,7 +356,7 @@ function kaartHTML(b, i) {
         <div class="oud-kop">
           <div class="oud-kop-naam">${e(b.oudNaam || b.naam || "Oud artikel")}</div>
           ${heeftOud ? '<div class="oud-kop-hint">Klik voor volledige tekst</div>' : ''}
-          <div class="oud-pijl">${heeftOud ? "â¼" : "â"}</div>
+          <div class="oud-pijl">${heeftOud ? "▼" : "–"}</div>
         </div>
         ${heeftOud ? `
         <div class="oud-tekst-blok">
@@ -417,7 +417,7 @@ function korteTekst(tekst) {
 
 function wetTekst(tekst) {
   const clean = tekst.replace(/\r\n|\r/g, '\n').replace(/\n+/g, '\n').trim();
-  // Splits op "1. " "2. " etc â ook midden in tekst
+  // Splits op "1. " "2. " etc — ook midden in tekst
   const parts = clean.split(/(?=(?:^|(?<=\s))(\d+)\. )/);
   // Alternatief: regex die splitst op genummerde leden
   const lidRe = /^(\d+)\.\s+/;
@@ -435,7 +435,7 @@ function wetTekst(tekst) {
     } else if (huidigLid) {
       huidigLid.tekst += ' ' + regel.trim();
     } else {
-      // Tekst vÃ³Ã³r eerste lid â of geen lidnummers
+      // Tekst vóór eerste lid — of geen lidnummers
       if (leden.length === 0 && !huidigLid) {
         huidigLid = { nr: null, tekst: regel };
       }
