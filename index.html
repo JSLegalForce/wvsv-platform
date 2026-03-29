@@ -333,7 +333,7 @@ function kaartHTML(b, i) {
 
   return `
   <div class="bev-kaart ${open}">
-    <div class="bev-kop" onclick="toggleKaart(this.closest('.bev-kaart'))">
+    <div class="bev-kop" onclick="toggleKaart(this.parentElement)">
       <div class="bev-nr">${i+1}</div>
       <div class="bev-naam">${e(naam)}</div>
       ${art ? `<div class="bev-art">${e(art)}</div>` : ''}
