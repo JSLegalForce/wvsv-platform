@@ -92,8 +92,8 @@ body{font-family:'Outfit',sans-serif;background:var(--achtergrond);color:var(--t
 .tab-btn{font-family:'Outfit',sans-serif;font-size:0.78rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--tekst-mid);background:none;border:none;border-bottom:2px solid transparent;margin-bottom:-2px;padding:10px 14px;cursor:pointer;transition:all 0.15s;white-space:nowrap;}
 .tab-btn:hover{color:var(--blauw);}
 .tab-btn.actief{color:var(--blauw);border-bottom-color:var(--blauw);}
-.tab-btn--win{color:var(--groen);}
-.tab-btn--win.actief{color:var(--groen);border-bottom-color:var(--groen);}
+.tab-win{color:var(--groen);}
+.tab-win.actief{color:var(--groen);border-bottom-color:var(--groen);}
 
 .tab-inhoud{display:none;padding:20px;}
 .tab-inhoud.actief{display:block;}
@@ -134,9 +134,6 @@ body{font-family:'Outfit',sans-serif;background:var(--achtergrond);color:var(--t
 .oud-kop-regel1{font-size:0.88rem;font-weight:600;color:var(--tekst);}
 .oud-kop-regel2{font-size:0.8rem;color:var(--tekst-mid);}
 .oud-kop-naam{flex:1;font-size:0.88rem;font-weight:600;color:var(--tekst-mid);}
-.oud-kop-links{flex:1;display:flex;flex-direction:column;gap:3px;}
-.oud-kop-regel1{font-size:0.88rem;font-weight:600;color:var(--tekst);}
-.oud-kop-regel2{font-size:0.75rem;color:var(--tekst-mid);}
 .oud-kop-hint{font-size:0.75rem;color:var(--zilver);white-space:nowrap;}
 .oud-pijl{font-size:0.75rem;color:var(--zilver);transition:transform 0.2s;flex-shrink:0;}
 .oud-kop.open .oud-pijl{transform:rotate(180deg);}
@@ -343,9 +340,9 @@ function kaartHTML(b, i) {
   <div class="bev-detail">
     <div class="tab-balk">
       <button class="tab-btn actief" data-tab="artikeltekst">Artikeltekst</button>
+              ${(b.watIsNieuw && !b.winNvt) ? '<button class="tab-btn tab-win" data-tab="watisnieuw">Wat is nieuw</button>' : ''}
       <button class="tab-btn" data-tab="uitleg">Korte uitleg</button>
       <button class="tab-btn" data-tab="mvt">MvT</button>
-      ${(b.watIsNieuw && !b.winNvt) ? '<button class="tab-btn tab-btn--win" data-tab="watisnieuw">Wat is nieuw</button>' : ''}
     </div>
     <div class="tab-inhoud actief" data-tab="artikeltekst">
       <div class="sectie-label">
@@ -357,10 +354,7 @@ function kaartHTML(b, i) {
       <div class="oud-sectie-label">Oud WvSv ${b.oudArtikel ? `<span class="oud-sectie-badge">${e(b.oudArtikel)}</span>` : ''}<span class="oud-sectie-badge oud-vervallen">vervallen</span></div>
       <div class="oud-blok">
         <div class="oud-kop">
-          <div class="oud-kop-links">
-                <div class="oud-kop-regel1">${e(b.oudNaam || b.naam || "Oud artikel")}</div>
-                <div class="oud-kop-regel2">Oud WvSv &nbsp;&middot;&nbsp; ${e(b.oudArtikel || '')} &nbsp;&middot;&nbsp; <span style="color:var(--rood);font-weight:600;">vervallen</span></div>
-              </div>
+          <div class="oud-kop-naam">${e(b.oudNaam || b.naam || "Oud artikel")}</div>
           ${heeftOud ? '<div class="oud-kop-hint">Klik voor volledige tekst</div>' : ''}
           <div class="oud-pijl">${heeftOud ? "â¼" : "â"}</div>
         </div>
@@ -382,7 +376,8 @@ function kaartHTML(b, i) {
       `}
     </div>
 
-    <div class="tab-inhoud" data-tab="uitleg">
+    ${(b.watIsNieuw && !b.winNvt) ? `<div class="tab-inhoud" data-tab="watisnieuw"><div class="uitleg-blok">${korteTekst(b.watIsNieuw)}</div></div>` : ''}
+        <div class="tab-inhoud" data-tab="uitleg">
       <div class="uitleg-sectie-label">
         Korte uitleg <span class="uitleg-sectie-badge">voor op straat</span>
       </div>
@@ -390,11 +385,6 @@ function kaartHTML(b, i) {
         ${b.kort ? korteTekst(b.kort) : '<span style="color:var(--zilver);font-style:italic;font-size:0.92rem;">Nog geen uitleg toegevoegd.</span>'}
       </div>
     </div>
-    ${(b.watIsNieuw && !b.winNvt) ? `<div class="tab-inhoud" data-tab="watisnieuw">
-      <div class="uitleg-blok">
-        ${korteTekst(b.watIsNieuw)}
-      </div>
-    </div>` : ''}
   </div>
 </div>`;
 }
