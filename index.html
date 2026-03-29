@@ -132,6 +132,9 @@ body{font-family:'Outfit',sans-serif;background:var(--achtergrond);color:var(--t
 .oud-kop-regel1{font-size:0.88rem;font-weight:600;color:var(--tekst);}
 .oud-kop-regel2{font-size:0.8rem;color:var(--tekst-mid);}
 .oud-kop-naam{flex:1;font-size:0.88rem;font-weight:600;color:var(--tekst-mid);}
+.oud-kop-links{flex:1;display:flex;flex-direction:column;gap:3px;}
+.oud-kop-regel1{font-size:0.88rem;font-weight:600;color:var(--tekst);}
+.oud-kop-regel2{font-size:0.75rem;color:var(--tekst-mid);}
 .oud-kop-hint{font-size:0.75rem;color:var(--zilver);white-space:nowrap;}
 .oud-pijl{font-size:0.75rem;color:var(--zilver);transition:transform 0.2s;flex-shrink:0;}
 .oud-kop.open .oud-pijl{transform:rotate(180deg);}
@@ -351,7 +354,10 @@ function kaartHTML(b, i) {
       <div class="oud-sectie-label">Oud WvSv ${b.oudArtikel ? `<span class="oud-sectie-badge">${e(b.oudArtikel)}</span>` : ''}<span class="oud-sectie-badge oud-vervallen">vervallen</span></div>
       <div class="oud-blok">
         <div class="oud-kop">
-          <div class="oud-kop-naam">${e(b.oudNaam || b.naam || "Oud artikel")}</div>
+          <div class="oud-kop-links">
+                <div class="oud-kop-regel1">${e(b.oudNaam || b.naam || "Oud artikel")}</div>
+                <div class="oud-kop-regel2">Oud WvSv &nbsp;&middot;&nbsp; ${e(b.oudArtikel || '')} &nbsp;&middot;&nbsp; <span style="color:var(--rood);font-weight:600;">vervallen</span></div>
+              </div>
           ${heeftOud ? '<div class="oud-kop-hint">Klik voor volledige tekst</div>' : ''}
           <div class="oud-pijl">${heeftOud ? "▼" : "–"}</div>
         </div>
