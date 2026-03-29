@@ -318,6 +318,18 @@ function renderBev() {
         this.parentElement.classList.toggle("open");
       });
     });
+    wrap.querySelectorAll(".oud-kop").forEach(k => {
+      k.addEventListener("click", function(e) {
+        e.stopPropagation();
+        toggleOud(this);
+      });
+    });
+    wrap.querySelectorAll(".tab-btn").forEach(btn => {
+      btn.addEventListener("click", function(e) {
+        e.stopPropagation();
+        switchTab(this);
+      });
+    });
   wrap.querySelectorAll(".tab-btn").forEach(btn => {
       btn.addEventListener("click", function(e) {
         e.stopPropagation();
