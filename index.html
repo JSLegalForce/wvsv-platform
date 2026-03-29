@@ -340,6 +340,9 @@ function kaartHTML(b, i) {
   const heeftOud = b.oud && b.oud.trim() && !b.oudNvt;
   const heeftWin = b.watIsNieuw && b.watIsNieuw.trim() && !b.winNvt;
   const heeftMvt = b.mvt && b.mvt.trim() && b.mvtNvt !== true;
+  const heeftSam = b.samArtikelen && b.samArtikelen.length > 0 &&
+    b.samArtikelen.some(a => typeof a === 'object' ? (a.naam || a.artikel || a.wettekst) : (a && a.trim())) &&
+    !b.samNvt;
   const open = b._open ? "open" : "";
   return `
   <div class="bev-kaart ${open}">
@@ -358,13 +361,38 @@ function kaartHTML(b, i) {
         <button class="tab-btn" data-tab="uitleg">Korte uitleg</button>
         <button class="tab-btn" data-tab="mvt">MvT</button>
       </div>
+
       <div class="tab-inhoud actief" data-tab="artikeltekst">
-        <div class="sectie-label" style="font-size:1.05rem;font-weight:800;color:var(--blauw);margin-bottom:16px;padding-bottom:12px;border-bottom:2px solid var(--grijs-mid);">${e(b.naam || "Bevoegdheid")}</div>
-        <div class="sectie-label">Nieuw WvSv ${b.artikel ? `<span class="sectie-badge">${e(b.artikel)}</span>` : ''}</div>
+
+        <div class="sectie-label">
+          Nieuw WvSv ${b.artikel ? `<span class="sectie-badge">${e(b.artikel)}</span>` : ''}
+        </div>
         <div class="artikel-nieuw">
           ${b.nieuw ? wetTekst(b.nieuw) : '<span style="color:var(--zilver);font-style:italic;font-size:0.9rem;">Nog geen tekst ingevoerd.</span>'}
         </div>
-        <div class="oud-blok">
+
+        ${heeftSam ? `
+        <div class="sectie-label" style="margin-top:18px;">Samenhangende artikelen</div>
+        <div class="sam-blok">
+          <div class="sam-chips">
+            ${b.samArtikelen
+              .filter(a => typeof a === 'object' ? (a.naam || a.artikel || a.wettekst) : (a && a.trim()))
+              .map(a => {
+                const sNaam = typeof a === 'object' ? (a.naam || '') : a;
+                const sArt  = typeof a === 'object' ? (a.artikel || '') : '';
+                const sWet  = typeof a === 'object' ? (a.wettekst || '') : '';
+                return \`<div class="sam-kaart">
+                  <div class="sam-kaart-kop">
+                    <div class="sam-kaart-naam">\${e(sNaam)}</div>
+                    \${sArt ? \`<div class="sam-kaart-art">\${e(sArt)}</div>\` : ''}
+                  </div>
+                  \${sWet ? \`<div class="sam-kaart-wet">\${e(sWet)}</div>\` : ''}
+                </div>\`;
+              }).join('')}
+          </div>
+        </div>` : ''}
+
+        <div class="oud-blok" style="margin-top:18px;">
           <div class="oud-kop">
             <div class="oud-kop-links">
               <div class="oud-kop-regel1">${e(b.oudNaam || b.naam || "Oud artikel")}</div>
@@ -372,38 +400,30 @@ function kaartHTML(b, i) {
             </div>
             <div class="oud-pijl">${heeftOud ? "&#9660;" : "&ndash;"}</div>
           </div>
-          ${heeftOud ? `<div class="oud-tekst-blok"><div class="oud-tekst">${e(b.oud)}</div></div>` : `<div class="oud-tekst-blok zichtbaar"><div class="oud-leeg">Geen oud artikel opgegeven.</div></div>`}
+          ${heeftOud
+            ? `<div class="oud-tekst-blok"><div class="oud-tekst">${e(b.oud)}</div></div>`
+            : `<div class="oud-tekst-blok zichtbaar"><div class="oud-leeg">Geen oud artikel opgegeven.</div></div>`}
         </div>
-        ${(b.samArtikelen && b.samArtikelen.filter(a=>typeof a==='object'?(a.naam||a.artikel||a.wettekst):a.trim()).length && !b.samNvt) ? `
-        <div class="sectie-label" style="margin-top:14px;">
-          Samenhangende artikelen
-        </div>
-        <div class="sam-blok">
-          <div class="sam-chips">
-            ${b.samArtikelen.filter(a => typeof a==='object' ? (a.naam||a.artikel||a.wettekst) : a.trim()).map(a => {
-              const naam = typeof a==='object' ? (a.naam||'') : a;
-              const art = typeof a==='object' ? (a.artikel||'') : '';
-              const wet = typeof a==='object' ? (a.wettekst||'') : '';
-              return `<div class="sam-kaart">
-                <div class="sam-kaart-kop">
-                  <div class="sam-kaart-naam">${e(naam)}</div>
-                  ${art ? `<div class="sam-kaart-art">${e(art)}</div>` : ''}
-                </div>
-                ${wet ? `<div class="sam-kaart-wet">${e(wet)}</div>` : ''}
-              </div>`;
-            }).join("")}
-          </div>
-        </div>` : ""}
+
       </div>
-      ${heeftWin ? `<div class="tab-inhoud" data-tab="watisnieuw"><div class="uitleg-blok">${korteTekst(b.watIsNieuw)}</div></div>` : ''}
+
+      ${heeftWin ? `
+      <div class="tab-inhoud" data-tab="watisnieuw">
+        <div class="uitleg-blok">${korteTekst(b.watIsNieuw)}</div>
+      </div>` : ''}
+
       <div class="tab-inhoud" data-tab="uitleg">
         <div class="uitleg-blok${b.kort ? '' : ' leeg'}">
           ${b.kort ? korteTekst(b.kort) : '<span style="color:var(--zilver);font-style:italic;font-size:0.92rem;">Nog geen uitleg toegevoegd.</span>'}
         </div>
       </div>
+
       <div class="tab-inhoud" data-tab="mvt">
-        ${heeftMvt ? `<div class="sectie-label">Memorie van Toelichting <span class="sectie-badge">MvT</span></div><div class="uitleg-blok">${korteTekst(b.mvt)}</div>` : `<div class="uitleg-blok leeg">Geen Memorie van Toelichting beschikbaar voor dit artikel.</div>`}
+        ${heeftMvt
+          ? `<div class="sectie-label">Memorie van Toelichting <span class="sectie-badge">MvT</span></div><div class="uitleg-blok">${korteTekst(b.mvt)}</div>`
+          : `<div class="uitleg-blok leeg">Geen Memorie van Toelichting beschikbaar voor dit artikel.</div>`}
       </div>
+
     </div>
   </div>`;
 }
