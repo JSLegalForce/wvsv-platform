@@ -374,13 +374,13 @@ function kaartHTML(b, i) {
           </div>
           ${heeftOud ? `<div class="oud-tekst-blok"><div class="oud-tekst">${e(b.oud)}</div></div>` : `<div class="oud-tekst-blok zichtbaar"><div class="oud-leeg">Geen oud artikel opgegeven.</div></div>`}
         </div>
-        ${(b.samArtikelen && b.samArtikelen.filter(a=>a.trim()).length && !b.samNvt) ? `
+        ${(b.samArtikelen && b.samArtikelen.filter(a=>typeof a==='object'?(a.naam||a.artikel||a.wettekst):a.trim()).length && !b.samNvt) ? `
         <div class="sectie-label" style="margin-top:14px;">
           Samenhangende artikelen
         </div>
         <div class="sam-blok">
           <div class="sam-chips">
-            ${b.samArtikelen.filter(a => typeof a==='object' ? (a.naam||a.artikel) : a.trim()).map(a => {
+            ${b.samArtikelen.filter(a => typeof a==='object' ? (a.naam||a.artikel||a.wettekst) : a.trim()).map(a => {
               const naam = typeof a==='object' ? (a.naam||'') : a;
               const art = typeof a==='object' ? (a.artikel||'') : '';
               const wet = typeof a==='object' ? (a.wettekst||'') : '';
