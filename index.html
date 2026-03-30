@@ -370,7 +370,8 @@ function kaartHTML(b, i) {
           var sWet=typeof a==='object'?(a.wettekst||''):'';
           return '<div class="sam-kaart"><div class="sam-kaart-kop"><div class="sam-kaart-naam">'+e(sNaam)+'</div>'+(sArt?'<div class="sam-kaart-art">'+e(sArt)+'</div>':'')+'</div>'+(sWet?'<div class="sam-kaart-wet">'+e(sWet)+'</div>':'')+'</div>';
         }).join('')}</div></div>` : ""}
-        <div class="oud-blok" style="margin-top:18px;">
+        <div class="sectie-label" style="margin-top:18px;">Oud WvSv</div>
+        <div class="oud-blok">
           <div class="oud-kop">
             <div class="oud-kop-links">
               <div class="oud-kop-regel1">${e(b.oudNaam||b.naam||"Oud artikel")}</div>
