@@ -139,7 +139,9 @@ body{font-family:'Outfit',sans-serif;background:var(--achtergrond);color:var(--t
 .sam-titel{font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#b07000;margin-bottom:10px;}
 .sam-chips{display:flex;flex-direction:column;gap:0;}
 .sam-kaart{background:#fff8ec;border:1px solid #e8c870;border-radius:10px;overflow:hidden;margin-bottom:8px;}
-.sam-kaart-kop{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;gap:12px;}
+.sam-kaart-kop{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;gap:12px;cursor:pointer;user-select:none;}
+.sam-kaart-pijl{font-size:0.75rem;color:#b07000;transition:transform 0.2s;}
+.sam-kaart-kop.open .sam-kaart-pijl{transform:rotate(180deg);}
 .sam-kaart-naam{font-size:0.88rem;font-weight:700;color:#7a5000;line-height:1.3;}
 .sam-kaart-art{font-size:0.78rem;font-weight:700;color:#b07000;background:#ffeed4;padding:2px 10px;border-radius:20px;white-space:nowrap;}
 .sam-kaart-wet{padding:0 14px 12px;font-size:0.85rem;line-height:1.7;color:var(--tekst-mid);border-top:1px solid #f0d898;padding-top:10px;margin-top:0;}
@@ -368,7 +370,15 @@ function kaartHTML(b, i) {
           var sNaam=typeof a==='object'?(a.naam||''):a;
           var sArt=typeof a==='object'?(a.artikel||''):'';
           var sWet=typeof a==='object'?(a.wettekst||''):'';
-          return '<div class="sam-kaart"><div class="sam-kaart-kop"><div class="sam-kaart-naam">'+e(sNaam)+'</div>'+(sArt?'<div class="sam-kaart-art">'+e(sArt)+'</div>':'')+'</div>'+(sWet?'<div class="sam-kaart-wet">'+e(sWet)+'</div>':'')+'</div>';
+          return '<div class="sam-kaart"><div class="sam-kaart-kop" onclick="toggleSamKaart(this)">'+
+            '<div class="sam-kaart-naam">'+e(sNaam)+'</div>'+
+            '<div style="display:flex;align-items:center;gap:8px;">'+
+            (sArt?'<div class="sam-kaart-art">'+e(sArt)+'</div>':'')+
+            (sWet?'<div class="sam-kaart-pijl">&#9660;</div>':'')+
+            '</div>'+
+            '</div>'+
+            (sWet?'<div class="sam-kaart-wet" style="display:none;">'+e(sWet)+'</div>':'')+
+            '</div>';
         }).join('')}</div></div>` : ""}
         <div class="sectie-label" style="margin-top:18px;">Oud WvSv</div>
         <div class="oud-blok">
