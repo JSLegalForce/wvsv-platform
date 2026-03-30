@@ -371,7 +371,7 @@ function kaartHTML(b, i) {
           var sNaam=typeof a==='object'?(a.naam||''):a;
           var sArt=typeof a==='object'?(a.artikel||''):'';
           var sWet=typeof a==='object'?(a.wettekst||''):'';
-          return '<div class="sam-kaart"><div class="sam-kaart-kop" onclick="toggleSamKaart(this)">'+
+          return '<div class="sam-kaart"><div class="sam-kaart-kop" >'+
             '<div class="sam-kaart-naam">'+e(sNaam)+'</div>'+
             '<div style="display:flex;align-items:center;gap:8px;">'+
             (sArt?'<div class="sam-kaart-art">'+e(sArt)+'</div>':'')+
@@ -489,6 +489,16 @@ function toggleSamKaart(kop) {
   wet.style.display = isOpen ? 'none' : 'block';
   kop.classList.toggle('open', !isOpen);
 }
+document.addEventListener("click", function(e) {
+  var samKop = e.target.closest(".sam-kaart-kop");
+  if (!samKop) return;
+  e.stopPropagation();
+  var wet = samKop.nextElementSibling;
+  if (!wet) return;
+  var isOpen = wet.style.display === "block";
+  wet.style.display = isOpen ? "none" : "block";
+  samKop.classList.toggle("open", !isOpen);
+}, true);
 laadData();
 </script>
 </body>
