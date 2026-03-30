@@ -333,6 +333,7 @@ function renderBev() {
     btn.addEventListener("click", e => { e.stopPropagation(); switchTab(btn); });
   });
   wrap.querySelectorAll(".oud-kop").forEach(kop => kop.addEventListener("click", e => { e.stopPropagation(); toggleOud(kop); }));
+  wrap.querySelectorAll(".sam-kaart-kop").forEach(kop => kop.addEventListener("click", e => { e.stopPropagation(); toggleSamKaart(kop); }));
   wrap.querySelectorAll(".tab-btn").forEach(btn => btn.addEventListener("click", e => { e.stopPropagation(); switchTab(btn); }));
 }
 
