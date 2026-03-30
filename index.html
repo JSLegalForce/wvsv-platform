@@ -482,6 +482,13 @@ function e(s) {
   return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
 }
 
+function toggleSamKaart(kop) {
+  var wet = kop.nextElementSibling;
+  if (!wet) return;
+  var isOpen = wet.style.display !== 'none';
+  wet.style.display = isOpen ? 'none' : 'block';
+  kop.classList.toggle('open', !isOpen);
+}
 laadData();
 </script>
 </body>
