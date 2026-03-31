@@ -365,7 +365,11 @@ function kaartHTML(b, i) {
         '<div class="artikel-nieuw">' + (b.nieuw ? wetTekst(b.nieuw) : '<span style="color:var(--zilver);font-style:italic;font-size:0.9rem;">Nog geen tekst ingevoerd.</span>') + '</div>' +
         (heeftWin ?
           '<div class="sectie-label" style="margin-top:18px;">Wat is nieuw</div>' +
-          '<div class="uitleg-blok" style="margin-top:6px;">' + korteTekst(b.watIsNieuw) + '</div>'
+          (b.winType === 'bullets' && b.winBullets && b.winBullets.filter(function(x){return x.trim();}).length ?
+            '<ul class="win-bullets">' +
+            b.winBullets.filter(function(x){return x.trim();}).map(function(x){return '<li class="win-bullet">' + e(x) + '</li>';}).join('') +
+            '</ul>'
+          : '<div class="uitleg-blok" style="margin-top:6px;">' + korteTekst(b.watIsNieuw) + '</div>')
         : '') +
         (heeftSam ?
           '<div class="sectie-label" style="margin-top:18px;">Samenhangende artikelen</div>' +
