@@ -699,6 +699,15 @@ const ROLLEN = {
 let actief = "gewoon";
 let data = JSON.parse(localStorage.getItem("jslf_data") || "{}");
 Object.keys(ROLLEN).forEach(r => { if (!data[r]) data[r] = []; });
+  // Migreer bestaande data naar nieuwe velden
+  Object.keys(data).forEach(function(rol) {
+    (data[rol] || []).forEach(function(bev) {
+      if (!bev.winType) bev.winType = 'tekst';
+      if (!bev.winBullets) bev.winBullets = [];
+      if (!bev.samArtikelen) bev.samArtikelen = [];
+      if (bev.samNvt === undefined) bev.samNvt = false;
+    });
+  });
 
 /* ════════ LOGIN ════════ */
 function login() {
