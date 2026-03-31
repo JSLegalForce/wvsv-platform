@@ -366,7 +366,7 @@ function kaartHTML(b, i) {
       <div class="tab-inhoud actief" data-tab="artikeltekst">
         <div class="sectie-label">Nieuw WvSv ${b.artikel ? `<span class="sectie-badge">${e(b.artikel)}</span>` : ""}</div>
         <div class="artikel-nieuw">${b.nieuw ? wetTekst(b.nieuw) : '<span style="color:var(--zilver);font-style:italic;font-size:0.9rem;">Nog geen tekst ingevoerd.</span>'}</div>
-        ${heeftSam ? `<div class="sectie-label" style="margin-top:18px;">Samenhangende artikelen</div>
+        ${heeftWin ? `<div class="sectie-label" style="margin-top:18px;">Wat is nieuw</div><div class="uitleg-blok" style="margin-top:6px;">${korteTekst(b.watIsNieuw)}</div>` : ""}${heeftSam ? `<div class="sectie-label" style="margin-top:18px;">Samenhangende artikelen</div>
         <div class="sam-blok"><div class="sam-chips">${b.samArtikelen.filter(function(a){return typeof a==='object'?(a.naam||a.artikel||a.wettekst):(a&&a.trim());}).map(function(a){
           var sNaam=typeof a==='object'?(a.naam||''):a;
           var sArt=typeof a==='object'?(a.artikel||''):'';
