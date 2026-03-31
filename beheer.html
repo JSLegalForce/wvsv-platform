@@ -883,17 +883,32 @@ function blokHTML(b, i) {
             ${b.winNvt ? '✓ N.v.t.' : 'N.v.t. — niet van toepassing'}
           </button>
         </div>
-        <div id="win-sectie-${i}" style="${b.winNvt ? 'display:none' : ''}">
+        <div id="win-sectie-${i}" style="${b.winNvt ? 'display:none' : ''">
           <div class="veld">
             <div class="veld-top">
               <div class="veld-nr" style="background:#1a7a4a">4</div>
               <div class="veld-naam" style="color:#1a7a4a">Wat is nieuw</div>
-              <span class="veld-hint">Zichtbaar als knop op cursistenpagina</span>
             </div>
+            <div style="display:flex;gap:8px;margin-bottom:12px;">
+              <button type="button" onclick="setWinType(event,${i},'tekst')" style="flex:1;padding:7px 12px;border-radius:8px;font-family:'Outfit',sans-serif;font-size:0.82rem;font-weight:600;cursor:pointer;border:2px solid ${(b.winType||'tekst')==='tekst' ? '#1a2a5e' : 'var(--grijs-mid)'};background:${(b.winType||'tekst')==='tekst' ? '#eef1f9' : 'var(--achtergrond)'};color:${(b.winType||'tekst')==='tekst' ? '#1a2a5e' : 'var(--tekst-mid)'};">≡ Vrije tekst</button>
+              <button type="button" onclick="setWinType(event,${i},'bullets')" style="flex:1;padding:7px 12px;border-radius:8px;font-family:'Outfit',sans-serif;font-size:0.82rem;font-weight:600;cursor:pointer;border:2px solid ${(b.winType||'tekst')==='bullets' ? '#1a2a5e' : 'var(--grijs-mid)'};background:${(b.winType||'tekst')==='bullets' ? '#eef1f9' : 'var(--achtergrond)'};color:${(b.winType||'tekst')==='bullets' ? '#1a2a5e' : 'var(--tekst-mid)'};">• Bullets</button>
+            </div>
+            ${(b.winType||'tekst') === 'tekst' ? `
             <div class="textarea-wrap" id="wrap-win-${i}">
               <textarea class="groot" placeholder="Beschrijf wat er nieuw is..." oninput="upd(${i},'watIsNieuw',this.value)">${e(b.watIsNieuw || '')}</textarea>
               <button type="button" class="textarea-uitvouw" onclick="toggleGroot('win',${i})" title="Vergroot/verklein">⧂</button>
+            </div>` : `
+            <div id="win-bullets-${i}">
+              ${(b.winBullets && b.winBullets.length ? b.winBullets : ['']).map((bull, bi) => `
+              <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">
+                <div style="width:6px;height:6px;border-radius:50%;background:#1a2a5e;flex-shrink:0;"></div>
+                <input type="text" style="flex:1;padding:8px 12px;border:2px solid var(--grijs-mid);border-radius:8px;font-family:'Outfit',sans-serif;font-size:0.88rem;color:var(--tekst);outline:none;" placeholder="bijv. Staande houden van getuigen toegevoegd" value="${e(bull)}" oninput="updWinBullet(${i},${bi},this.value)">
+                <button type="button" onclick="verwijderWinBullet(event,${i},${bi})" style="width:30px;height:30px;border-radius:8px;border:1px solid rgba(181,42,42,0.25);background:rgba(181,42,42,0.08);color:var(--rood);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;">&times;</button>
+              </div>`).join('')}
             </div>
+            <button type="button" onclick="voegWinBulletToe(event,${i})" style="display:flex;align-items:center;gap:6px;width:100%;padding:8px 14px;background:var(--achtergrond);border:2px dashed var(--grijs-mid);border-radius:8px;color:var(--blauw);font-family:'Outfit',sans-serif;font-size:0.85rem;font-weight:600;cursor:pointer;justify-content:center;margin-top:4px;">
+              <span style="font-size:16px;">+</span> Bullet toevoegen
+            </button>`}
           </div>
         </div>
         <div class="veld">
@@ -1103,6 +1118,29 @@ function toggleSamNvt(event, i) {
     opslaan();
     render();
   }
+  function setWinType(event, i, type) {
+    event.stopPropagation();
+    data[actief][i].winType = type;
+    if (type === 'bullets' && !data[actief][i].winBullets) data[actief][i].winBullets = [''];
+    opslaan(); render();
+  }
+  function updWinBullet(i, bi, waarde) {
+    if (!data[actief][i].winBullets) data[actief][i].winBullets = [];
+    data[actief][i].winBullets[bi] = waarde;
+    opslaan();
+  }
+  function voegWinBulletToe(event, i) {
+    event.stopPropagation();
+    if (!data[actief][i].winBullets) data[actief][i].winBullets = [];
+    data[actief][i].winBullets.push('');
+    opslaan(); render();
+  }
+  function verwijderWinBullet(event, i, bi) {
+    event.stopPropagation();
+    if (!data[actief][i].winBullets) return;
+    data[actief][i].winBullets.splice(bi, 1);
+    opslaan(); render();
+  }
   function toggleWinNvt(event, i) {
     event.stopPropagation();
     data[actief][i].winNvt = !data[actief][i].winNvt;
@@ -1155,7 +1193,7 @@ function toggleNvt(event, i) {
 }
 
 function voegToe() {
-  data[actief].push({ naam:"", artikel:"", nieuw:"", watIsNieuw:"", winNvt:false, samArtikelen:[""], samNvt:false, kort:"", oud:"", oudNaam:"", oudArtikel:"", oudNvt:false, mvt:"", mvtNvt:false, _open:true });
+  data[actief].push({ naam:"", artikel:"", nieuw:"", watIsNieuw:"", winNvt:false, winType:"tekst", winBullets:[], samArtikelen:[""], samNvt:false, kort:"", oud:"", oudNaam:"", oudArtikel:"", oudNvt:false, mvt:"", mvtNvt:false, _open:true });
   opslaan(); tellingen(); render();
   setTimeout(() => {
     const blokken = document.querySelectorAll(".bev");
