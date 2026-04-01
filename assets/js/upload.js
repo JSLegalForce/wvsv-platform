@@ -1,25 +1,45 @@
 /**
- * upload.js — WvSv uploadmodule v4
- * Correcte state, volledige reset, drag-drop, verwijder-knoppen.
+ * upload.js - WvSv uploadmodule v4
+ *
+ * State-gebaseerde aanpak:
+ *   state.currentFile    - het actieve bestand (File object)
+ *   state.currentSource  - 'upload' of 'testdata'
+ *   state.parsedArticles - gevonden artikelen (altijd verse array)
+ *   state.loadedItems    - lijst van geladen items voor weergave
+ *   state.jsonData       - JSON string voor download
+ *
+ * Fixes:
+ *   - Bestand wordt direct opgeslagen in state bij kiezen EN drag-drop
+ *   - Testdata en echte bestanden lopen nooit door elkaar
+ *   - Volledige reset bij elke actie
+ *   - Verwijder-knoppen per item + "Alles wissen"
  */
+
 const WvSvUpload = (() => {
 
-  // ── State ──────────────────────────────────────────────────────────────
+  // ── Centrale state ─────────────────────────────────────────────────────
   const state = {
     currentFile:    null,   // File object
     currentSource:  null,   // 'upload' | 'testdata' | null
     parsedArticles: [],
-    loadedItems:    [],     // { id, naam, type, bron, status }
+    loadedItems:    [],
     jsonData:       null
   };
-  let _nextId = 1;
 
-  // ── Helpers ────────────────────────────────────────────────────────────
+  // ── Hulpfuncties ────────────────────────────────────────────────────────
+
+  function e(str) {
+    return String(str||'')
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
   function setStatus(tekst, type) {
     const el = document.getElementById('upload-status');
     if (!el) return;
     el.textContent = tekst;
-    el.className = 'upload-status upload-status--' + (type || 'info');
+    el.className = 'upload-status upload-status--' + (type||'info');
+    console.log('[Upload] Status (' + (type||'info') + '):', tekst);
   }
 
   function toonLader(aan) {
@@ -27,111 +47,112 @@ const WvSvUpload = (() => {
     if (el) el.style.display = aan ? 'flex' : 'none';
   }
 
-  function escHTML(str) {
-    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-  }
+  // ── Reset ───────────────────────────────────────────────────────────────
 
-  // ── State reset ────────────────────────────────────────────────────────
-  function resetAlles() {
+  function resetState() {
     state.currentFile    = null;
     state.currentSource  = null;
     state.parsedArticles = [];
     state.loadedItems    = [];
     state.jsonData       = null;
+    console.log('[Upload] State volledig gereset.');
+  }
 
-    const input = document.getElementById('upload-bestand');
-    if (input) input.value = '';
+  function resetUI() {
+    const resultaten = document.getElementById('upload-resultaten');
+    const teller     = document.getElementById('upload-teller');
+    const bestandslijst = document.getElementById('upload-bestandenlijst');
+    const input      = document.getElementById('upload-bestand');
 
-    const container = document.getElementById('upload-resultaten');
-    if (container) container.innerHTML = '<div class="upload-leeg">Nog geen artikelen — analyseer een bestand of laad de testdata.</div>';
+    if (resultaten)    resultaten.innerHTML = '<div class="upload-leeg">Nog geen resultaten.</div>';
+    if (teller)        teller.textContent = '';
+    if (bestandslijst) bestandslijst.innerHTML = '<div class="upload-leeg-items">Geen bestanden geladen.</div>';
+    if (input)         input.value = '';
 
-    const teller = document.getElementById('upload-teller');
-    if (teller) teller.textContent = '';
-
-    document.getElementById('btn-download')?.setAttribute('disabled','true');
     document.getElementById('btn-analyseer')?.setAttribute('disabled','true');
+    document.getElementById('btn-download')?.setAttribute('disabled','true');
+    document.getElementById('btn-verwijder-testdata')?.setAttribute('disabled','true');
+    console.log('[Upload] UI gereset.');
+  }
 
-    renderGeladen();
-    setStatus('Alles gewist — klaar voor nieuwe analyse.', 'info');
+  function volledigeReset() {
+    resetState();
+    resetUI();
+    setStatus('Klaar — kies een bestand of laad testdata.', 'info');
     console.log('[Upload] Alles gewist.');
   }
 
-  function resetResultaten() {
-    state.parsedArticles = [];
-    state.jsonData       = null;
-    const container = document.getElementById('upload-resultaten');
-    if (container) container.innerHTML = '<div class="upload-leeg">Bezig…</div>';
-    const teller = document.getElementById('upload-teller');
-    if (teller) teller.textContent = '';
-    document.getElementById('btn-download')?.setAttribute('disabled','true');
-  }
+  // ── Bestandenlijst ──────────────────────────────────────────────────────
 
-  // ── Geladen bestanden weergave ─────────────────────────────────────────
-  function renderGeladen() {
-    const el = document.getElementById('geladen-lijst');
-    if (!el) return;
+  function updateBestandenlijst() {
+    const lijst = document.getElementById('upload-bestandenlijst');
+    if (!lijst) return;
 
     if (state.loadedItems.length === 0) {
-      el.innerHTML = '<div class="upload-leeg" style="padding:12px;">Geen bestanden geladen.</div>';
+      lijst.innerHTML = '<div class="upload-leeg-items">Geen bestanden geladen.</div>';
       return;
     }
 
-    el.innerHTML = state.loadedItems.map(item => {
-      const bronKleur = item.bron === 'testdata' ? '#1a7a4a' : '#1a2a5e';
-      const statusKleur = item.status === 'geanalyseerd' ? '#1a7a4a' : item.status === 'fout' ? '#b52a2a' : '#b07000';
-      return '<div class="geladen-item" data-id="' + item.id + '">' +
-        '<div class="geladen-item-info">' +
-          '<span class="geladen-naam">' + escHTML(item.naam) + '</span>' +
-          '<span class="geladen-meta">' +
-            '<span class="geladen-badge" style="background:' + bronKleur + '">' + escHTML(item.bron) + '</span>' +
-            '<span class="geladen-badge" style="background:' + statusKleur + '">' + escHTML(item.status) + '</span>' +
-            (item.type ? '<span class="geladen-type">.' + escHTML(item.type) + '</span>' : '') +
+    lijst.innerHTML = state.loadedItems.map((item, idx) => {
+      const statusKleur = item.status === 'geanalyseerd' ? 'groen' :
+                          item.status === 'fout'         ? 'rood'  : 'blauw';
+      return '<div class="upload-item" id="item-' + idx + '">' +
+        '<div class="upload-item-info">' +
+          '<span class="upload-item-naam">' + e(item.naam) + '</span>' +
+          '<span class="upload-item-meta">' +
+            e(item.type) + ' &middot; ' +
+            '<span class="upload-item-bron">' + e(item.bron) + '</span>' +
+            ' &middot; <span class="upload-item-status upload-item-status--' + statusKleur + '">' + e(item.status) + '</span>' +
           '</span>' +
         '</div>' +
-        '<button type="button" class="knop knop-gevaar-klein" onclick="WvSvUpload.verwijderItem(' + item.id + ')">' +
-          (item.bron === 'testdata' ? 'Verwijder testdata' : 'Verwijderen') +
-        '</button>' +
+        '<button class="knop knop-klein knop-rood" onclick="WvSvUpload.verwijderItem(' + idx + ')">Verwijderen</button>' +
       '</div>';
     }).join('');
   }
 
-  function voegItemToe(naam, type, bron) {
-    const id = _nextId++;
-    state.loadedItems.push({ id, naam, type, bron, status: 'geladen' });
-    renderGeladen();
-    return id;
-  }
+  // ── Resultaten ──────────────────────────────────────────────────────────
 
-  function updateItemStatus(id, status) {
-    const item = state.loadedItems.find(i => i.id === id);
-    if (item) { item.status = status; renderGeladen(); }
-  }
+  function toonResultaten(artikelen) {
+    state.parsedArticles = artikelen;
+    state.jsonData       = JSON.stringify(artikelen, null, 2);
 
-  function verwijderItem(id) {
-    state.loadedItems = state.loadedItems.filter(i => i.id !== id);
-    const item = state.loadedItems.find(i => i.id === id);
-    // Als het het actieve item was, reset resultaten
-    if (state.currentSource) {
-      resetResultaten();
-      state.currentFile = null;
-      state.currentSource = null;
-      document.getElementById('btn-analyseer')?.setAttribute('disabled','true');
+    const container = document.getElementById('upload-resultaten');
+    const teller    = document.getElementById('upload-teller');
+
+    if (!artikelen || artikelen.length === 0) {
+      if (container) container.innerHTML =
+        '<div class="upload-leeg">Geen artikelen gevonden.<br>' +
+        'Controleer of het bestand artikelnummers bevat zoals <strong>Art. 2.5.3</strong> of <strong>Artikel 52</strong>.</div>';
+      if (teller) teller.textContent = '';
+      return;
     }
-    if (state.loadedItems.length === 0) {
-      resetResultaten();
-      document.getElementById('upload-resultaten').innerHTML =
-        '<div class="upload-leeg">Nog geen artikelen — analyseer een bestand of laad de testdata.</div>';
+
+    if (teller) teller.textContent = artikelen.length + ' artikel' + (artikelen.length !== 1 ? 'en' : '') + ' gevonden';
+
+    if (container) {
+      container.innerHTML = artikelen.map(art => {
+        const preview = (art.inhoud||'').length > 200
+          ? (art.inhoud).substring(0,200).trim() + '\u2026'
+          : (art.inhoud||'').trim();
+        return '<div class="upload-artikel">' +
+          '<div class="upload-artikel-kop">' +
+            '<span class="upload-artikel-nr">Art. ' + e(art.artikel) + '</span>' +
+            (art.titel ? '<span class="upload-artikel-titel">' + e(art.titel) + '</span>' : '') +
+          '</div>' +
+          (preview ? '<div class="upload-artikel-preview">' + e(preview) + '</div>' : '') +
+        '</div>';
+      }).join('');
     }
-    renderGeladen();
-    setStatus('Item verwijderd.', 'info');
-    console.log('[Upload] Item verwijderd, id:', id);
+
+    document.getElementById('btn-download')?.removeAttribute('disabled');
   }
 
-  // ── Bestand lezen ──────────────────────────────────────────────────────
+  // ── Bestand inlezen ─────────────────────────────────────────────────────
+
   function leesAlsTekst(bestand) {
     return new Promise((res, rej) => {
       const r = new FileReader();
-      r.onload  = e => res(e.target.result);
+      r.onload  = ev => res(ev.target.result);
       r.onerror = () => rej(new Error('Bestand kon niet worden gelezen.'));
       r.readAsText(bestand, 'UTF-8');
     });
@@ -141,9 +162,9 @@ const WvSvUpload = (() => {
     return new Promise((res, rej) => {
       if (typeof pdfjsLib === 'undefined') { rej(new Error('PDF.js niet geladen.')); return; }
       const r = new FileReader();
-      r.onload = async (e) => {
+      r.onload = async ev => {
         try {
-          const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(e.target.result) }).promise;
+          const pdf = await pdfjsLib.getDocument({data: new Uint8Array(ev.target.result)}).promise;
           let tekst = '';
           for (let p = 1; p <= pdf.numPages; p++) {
             const pg = await pdf.getPage(p);
@@ -162,11 +183,9 @@ const WvSvUpload = (() => {
     return new Promise((res, rej) => {
       if (typeof mammoth === 'undefined') { rej(new Error('Mammoth.js niet geladen.')); return; }
       const r = new FileReader();
-      r.onload = async (e) => {
-        try {
-          const result = await mammoth.extractRawText({ arrayBuffer: e.target.result });
-          res(result.value);
-        } catch(err) { rej(new Error('DOCX fout: ' + err.message)); }
+      r.onload = async ev => {
+        try { res((await mammoth.extractRawText({arrayBuffer: ev.target.result})).value); }
+        catch(err) { rej(new Error('DOCX fout: ' + err.message)); }
       };
       r.onerror = () => rej(new Error('DOCX laden mislukt.'));
       r.readAsArrayBuffer(bestand);
@@ -175,49 +194,14 @@ const WvSvUpload = (() => {
 
   async function leesBestand(bestand) {
     const ext = bestand.name.split('.').pop().toLowerCase();
-    if (ext === 'txt' || ext === 'md') return await leesAlsTekst(bestand);
-    if (ext === 'pdf')                  return await leesAlsPDF(bestand);
-    if (ext === 'docx')                 return await leesAlsDOCX(bestand);
+    if (ext === 'txt' || ext === 'md')  return await leesAlsTekst(bestand);
+    if (ext === 'pdf')                   return await leesAlsPDF(bestand);
+    if (ext === 'docx')                  return await leesAlsDOCX(bestand);
     throw new Error('Bestandstype .' + ext + ' niet ondersteund.');
   }
 
-  // ── Resultaten tonen ───────────────────────────────────────────────────
-  function toonResultaten(artikelen) {
-    state.parsedArticles = artikelen;
-    state.jsonData = JSON.stringify(artikelen, null, 2);
+  // ── Bestand verwerken ───────────────────────────────────────────────────
 
-    const container = document.getElementById('upload-resultaten');
-    const teller    = document.getElementById('upload-teller');
-
-    if (!artikelen || artikelen.length === 0) {
-      if (container) container.innerHTML =
-        '<div class="upload-leeg">Geen artikelen gevonden.<br>' +
-        'Controleer of de tekst patronen bevat zoals <strong>Art. 2.5.3</strong> of <strong>Artikel 52</strong>.</div>';
-      if (teller) teller.textContent = '';
-      return;
-    }
-
-    if (teller) teller.textContent = artikelen.length + ' artikel' + (artikelen.length !== 1 ? 'en' : '') + ' gevonden';
-
-    if (container) {
-      container.innerHTML = artikelen.map(art => {
-        const preview = (art.inhoud || '').length > 200
-          ? art.inhoud.substring(0,200).trim() + '…'
-          : (art.inhoud || '').trim();
-        return '<div class="upload-artikel">' +
-          '<div class="upload-artikel-kop">' +
-            '<span class="upload-artikel-nr">Art. ' + escHTML(art.artikel) + '</span>' +
-            (art.titel ? '<span class="upload-artikel-titel">' + escHTML(art.titel) + '</span>' : '') +
-          '</div>' +
-          (preview ? '<div class="upload-artikel-preview">' + escHTML(preview) + '</div>' : '') +
-        '</div>';
-      }).join('');
-    }
-
-    document.getElementById('btn-download')?.removeAttribute('disabled');
-  }
-
-  // ── Bestand kiezen (click + drag-drop) ────────────────────────────────
   function verwerkBestand(bestand) {
     if (!bestand) return;
     const ext = bestand.name.split('.').pop().toLowerCase();
@@ -226,57 +210,80 @@ const WvSvUpload = (() => {
       return;
     }
 
-    // Wis testdata uit state als die actief was
-    if (state.currentSource === 'testdata') {
-      state.loadedItems = state.loadedItems.filter(i => i.bron !== 'testdata');
-    }
+    // Reset alles — testdata en oud resultaat weggooien
+    resetState();
+    resetUI();
 
-    // Sla het bestand direct op in state
+    // Sla bestand op in state
     state.currentFile   = bestand;
     state.currentSource = 'upload';
 
-    // Reset resultaten voor nieuw bestand
-    resetResultaten();
+    // Voeg toe aan geladen items
+    state.loadedItems = [{
+      naam:   bestand.name,
+      type:   ext.toUpperCase(),
+      bron:   'upload',
+      status: 'geladen'
+    }];
 
-    // Voeg toe aan geladen lijst
-    voegItemToe(bestand.name, ext, 'upload');
-
-    setStatus('Gekozen: ' + bestand.name + ' (' + ext.toUpperCase() + ', ' + (bestand.size/1024).toFixed(1) + ' KB) — klik op "Analyseer bestand".', 'info');
+    updateBestandenlijst();
     document.getElementById('btn-analyseer')?.removeAttribute('disabled');
-    console.log('[Upload] Bestand gekozen:', bestand.name, '| grootte:', bestand.size);
+    setStatus('Gekozen: ' + bestand.name + ' (' + ext.toUpperCase() + ', ' + (bestand.size/1024).toFixed(1) + ' KB)', 'info');
+    console.log('[Upload] Bestand opgeslagen in state:', bestand.name, '| bron: upload');
   }
+
+  // ── Event handlers ──────────────────────────────────────────────────────
 
   function onBestandGekozen(event) {
     const bestand = event.target.files[0];
-    if (bestand) verwerkBestand(bestand);
+    if (!bestand) return;
+    console.log('[Upload] Bestand gekozen via input:', bestand.name);
+    verwerkBestand(bestand);
   }
 
-  // ── Analyseer ─────────────────────────────────────────────────────────
-  async function onAnalyseer() {
-    // Gebruik het bestand direct uit state (niet opnieuw uit input)
-    const bestand = state.currentFile;
+  function onDrop(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    document.getElementById('upload-zone')?.classList.remove('drag-over');
+    const bestand = event.dataTransfer?.files[0];
+    if (!bestand) return;
+    console.log('[Upload] Bestand gekozen via drag-drop:', bestand.name);
+    verwerkBestand(bestand);
+  }
 
-    if (!bestand || state.currentSource !== 'upload') {
+  function onDragOver(event) {
+    event.preventDefault();
+    document.getElementById('upload-zone')?.classList.add('drag-over');
+  }
+
+  function onDragLeave() {
+    document.getElementById('upload-zone')?.classList.remove('drag-over');
+  }
+
+  async function onAnalyseer() {
+    if (!state.currentFile) {
       setStatus('Geen bestand gekozen. Kies eerst een bestand.', 'fout');
       return;
     }
 
-    resetResultaten();
+    console.log('[Upload] Analyse gestart:', state.currentFile.name);
     toonLader(true);
     setStatus('Bestand wordt ingelezen…', 'info');
-    console.log('[Upload] Analyse gestart:', bestand.name);
 
-    // Update status in lijst
-    const item = state.loadedItems.find(i => i.naam === bestand.name && i.bron === 'upload');
-    const itemId = item ? item.id : null;
+    // Reset alleen de resultaten — bestand en state blijven
+    state.parsedArticles = [];
+    state.jsonData = null;
+    document.getElementById('upload-resultaten').innerHTML = '';
+    document.getElementById('upload-teller').textContent = '';
+    document.getElementById('btn-download')?.setAttribute('disabled','true');
 
     try {
-      const tekst = await leesBestand(bestand);
+      const tekst = await leesBestand(state.currentFile);
 
       if (!tekst || !tekst.trim()) {
-        setStatus('Bestand is leeg of onleesbaar.', 'waarschuwing');
-        if (itemId) updateItemStatus(itemId, 'fout');
-        toonLader(false);
+        setStatus('Bestand is leeg of kon niet worden uitgelezen.', 'waarschuwing');
+        if (state.loadedItems[0]) state.loadedItems[0].status = 'fout';
+        updateBestandenlijst();
         return;
       }
 
@@ -286,67 +293,57 @@ const WvSvUpload = (() => {
       const artikelen = WvSvParser.parseerArtikelen(tekst);
       toonResultaten(artikelen);
 
-      if (itemId) updateItemStatus(itemId, 'geanalyseerd');
+      // Update status in lijst
+      if (state.loadedItems[0]) state.loadedItems[0].status = 'geanalyseerd';
+      updateBestandenlijst();
 
       setStatus(
         artikelen.length > 0
-          ? 'Klaar — ' + artikelen.length + ' artikel(en) gevonden in ' + bestand.name + '.'
-          : 'Geen artikelen herkend. Controleer de bestandsinhoud.',
+          ? 'Klaar — ' + artikelen.length + ' artikel' + (artikelen.length!==1?'en':'') + ' gevonden in ' + state.currentFile.name + '.'
+          : 'Geen artikelen herkend in ' + state.currentFile.name + '.',
         artikelen.length > 0 ? 'succes' : 'waarschuwing'
       );
-      console.log('[Upload] Analyse klaar | gevonden:', artikelen.length);
+      console.log('[Upload] Analyse klaar | artikelen:', artikelen.length);
 
     } catch(err) {
-      setStatus('Fout: ' + err.message, 'fout');
-      if (itemId) updateItemStatus(itemId, 'fout');
+      setStatus('Fout bij inlezen: ' + err.message, 'fout');
+      if (state.loadedItems[0]) state.loadedItems[0].status = 'fout';
+      updateBestandenlijst();
       console.error('[Upload] Fout:', err);
     } finally {
       toonLader(false);
     }
   }
 
-  // ── Testdata ───────────────────────────────────────────────────────────
   function onTestData() {
-    // Wis echt bestand uit state
-    state.currentFile   = null;
-    state.currentSource = 'testdata';
-
-    // Verwijder bestaande testdata-items
-    state.loadedItems = state.loadedItems.filter(i => i.bron !== 'testdata');
-
-    resetResultaten();
-    voegItemToe('testdata.txt', 'txt', 'testdata');
-
     console.log('[Upload] Testdata laden...');
+
+    // Reset ALLES — ook eerder gekozen bestanden
+    resetState();
+    resetUI();
+
+    state.currentSource = 'testdata';
+    state.loadedItems = [{
+      naam:   'testdata.txt',
+      type:   'TXT',
+      bron:   'testdata',
+      status: 'geladen'
+    }];
+    updateBestandenlijst();
+    document.getElementById('btn-verwijder-testdata')?.removeAttribute('disabled');
+
     setStatus('Testdata wordt geladen…', 'info');
 
     const artikelen = WvSvParser.parseerArtikelen(WvSvParser.TESTDATA);
     toonResultaten(artikelen);
 
-    // Update status
-    const item = state.loadedItems.find(i => i.bron === 'testdata');
-    if (item) updateItemStatus(item.id, 'geanalyseerd');
+    if (state.loadedItems[0]) state.loadedItems[0].status = 'geanalyseerd';
+    updateBestandenlijst();
 
     setStatus('Testdata — ' + artikelen.length + ' voorbeeldartikelen geladen.', 'succes');
-    document.getElementById('btn-analyseer')?.setAttribute('disabled','true');
     console.log('[Upload] Testdata geladen | artikelen:', artikelen.length);
   }
 
-  // ── Verwijderen ────────────────────────────────────────────────────────
-  function verwijderTestdata() {
-    state.loadedItems = state.loadedItems.filter(i => i.bron !== 'testdata');
-    if (state.currentSource === 'testdata') {
-      state.currentSource = null;
-      resetResultaten();
-      document.getElementById('upload-resultaten').innerHTML =
-        '<div class="upload-leeg">Testdata verwijderd. Kies een bestand of laad testdata opnieuw.</div>';
-      setStatus('Testdata verwijderd.', 'info');
-    }
-    renderGeladen();
-    console.log('[Upload] Testdata verwijderd.');
-  }
-
-  // ── Download JSON ──────────────────────────────────────────────────────
   function onDownload() {
     if (!state.jsonData) return;
     const blob = new Blob([state.jsonData], {type:'application/json'});
@@ -354,46 +351,70 @@ const WvSvUpload = (() => {
     const a    = document.createElement('a');
     a.href = url; a.download = 'artikelen.json'; a.click();
     URL.revokeObjectURL(url);
-    console.log('[Upload] JSON gedownload | artikelen:', state.parsedArticles.length);
+    console.log('[Upload] JSON gedownload |', state.parsedArticles.length, 'artikelen');
   }
 
-  // ── Drag & Drop ────────────────────────────────────────────────────────
-  function initDragDrop() {
-    const zone = document.getElementById('upload-zone');
-    if (!zone) return;
+  // ── Verwijder functies (publiek) ────────────────────────────────────────
 
-    zone.addEventListener('dragover', e => {
-      e.preventDefault();
-      zone.classList.add('drag-over');
-    });
-    zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
-    zone.addEventListener('drop', e => {
-      e.preventDefault();
-      zone.classList.remove('drag-over');
-      const bestand = e.dataTransfer?.files[0];
-      if (bestand) verwerkBestand(bestand);
-    });
+  function verwijderItem(idx) {
+    const item = state.loadedItems[idx];
+    if (!item) return;
+    console.log('[Upload] Item verwijderd:', item.naam);
+
+    state.loadedItems.splice(idx, 1);
+
+    if (state.loadedItems.length === 0) {
+      volledigeReset();
+      setStatus('Alle bestanden verwijderd.', 'info');
+    } else {
+      updateBestandenlijst();
+    }
   }
 
-  // ── Init ───────────────────────────────────────────────────────────────
+  function verwijderTestdata() {
+    if (state.currentSource !== 'testdata') return;
+    console.log('[Upload] Testdata verwijderd.');
+    volledigeReset();
+    setStatus('Testdata verwijderd.', 'info');
+  }
+
+  function allesWissen() {
+    volledigeReset();
+    console.log('[Upload] Alles gewist door gebruiker.');
+  }
+
+  // ── Initialisatie ────────────────────────────────────────────────────────
+
   function init() {
-    document.getElementById('upload-bestand')?.addEventListener('change', onBestandGekozen);
-    document.getElementById('btn-analyseer')?.addEventListener('click', onAnalyseer);
-    document.getElementById('btn-testdata')?.addEventListener('click', onTestData);
-    document.getElementById('btn-download')?.addEventListener('click', onDownload);
-    document.getElementById('btn-alles-wissen')?.addEventListener('click', resetAlles);
+    // File input
+    document.getElementById('upload-bestand')
+      ?.addEventListener('change', onBestandGekozen);
+
+    // Drag-drop op de upload zone
+    const zone = document.getElementById('upload-zone');
+    if (zone) {
+      zone.addEventListener('dragover',  onDragOver);
+      zone.addEventListener('dragleave', onDragLeave);
+      zone.addEventListener('drop',      onDrop);
+    }
+
+    // Knoppen
+    document.getElementById('btn-analyseer')        ?.addEventListener('click', onAnalyseer);
+    document.getElementById('btn-testdata')          ?.addEventListener('click', onTestData);
+    document.getElementById('btn-download')          ?.addEventListener('click', onDownload);
+    document.getElementById('btn-alles-wissen')      ?.addEventListener('click', allesWissen);
+    document.getElementById('btn-verwijder-testdata')?.addEventListener('click', verwijderTestdata);
 
     if (typeof pdfjsLib !== 'undefined') {
       pdfjsLib.GlobalWorkerOptions.workerSrc =
         'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
     }
 
-    initDragDrop();
-    renderGeladen();
     console.log('[Upload] Module geinitialiseerd.');
   }
 
-  return { init, verwijderItem, verwijderTestdata, resetAlles };
+  // Publieke API
+  return { init, onTestData, verwijderItem, verwijderTestdata, allesWissen };
 
 })();
 
