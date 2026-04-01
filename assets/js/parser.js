@@ -1,88 +1,104 @@
 /**
- * parser.js — WvSv artikelparser (verbeterde versie)
+ * parser.js — WvSv artikelparser v3
  *
- * Aanpak: regel-voor-regel parsing
- * - Elke regel wordt gecontroleerd of het een artikelkop is
- * - Artikelnummer, titel en inhoud worden apart opgeslagen
- * - Inhoud bevat NIET de artikelkop zelf (geen dubbele info)
+ * Aanpak: strikt regel-voor-regel
+ * - Elke analyse start met een LEGE array (geen state tussen aanroepen)
+ * - Artikelkop wordt herkend op basis van regex per regel
+ * - Artikelnummer, titel en inhoud strikt gescheiden
+ * - Inhoud bevat NOOIT de artikelkop zelf
+ * - Verwerkt het VOLLEDIGE document tot de laatste regel
  */
 
 const WvSvParser = (() => {
 
-  // Patroon: herkent een regel die BEGINT met Art./Artikel + nummer
-  // Voorbeelden: "Art. 2.5.3", "Artikel 52", "art. 52a", "Art. 1.4.8"
-  const ARTIKEL_KOP_REGEX = /^(Art(?:ikel)?)\.?\s+(\d[\d.]*[a-z]?)\b(.*)/i;
+  // Herkent een regel die BEGINT met Art./Artikel + nummer
+  // Voorbeelden: "Art. 2.5.3 Titel", "Artikel 52", "art. 52a Naam"
+  const ARTIKEL_KOP_REGEX = /^(Art(?:ikel)?\.?)\s+(\d[\d.]*[a-z]?)\b(.*)/i;
 
   /**
    * Controleer of een regel een artikelkop is.
-   * Geeft null terug als het geen artikelkop is.
-   * Geeft { nummer, titel } terug als het wel een artikelkop is.
+   * Geeft { nummer, titel } of null terug.
    */
-  function parseArtikelKop(regel) {
+  function isArtikelKop(regel) {
     const m = ARTIKEL_KOP_REGEX.exec(regel.trim());
     if (!m) return null;
     return {
       nummer: m[2].trim(),
-      titel: m[3].trim()
+      titel:  m[3].trim()
     };
   }
 
   /**
-   * Hoofd-parserfunctie: lees tekst regel voor regel.
-   * Per artikel: sla nummer, titel en alle volgende regels op als inhoud.
+   * Hoofd-parserfunctie.
+   * Maakt ALTIJD een nieuwe lege array — geen hergebruik van state.
+   * Verwerkt ALLE regels tot het einde van het document.
    */
   function parseerArtikelen(tekst) {
-    if (!tekst || !tekst.trim()) return [];
+    // Altijd verse array — geen risico op hergebruik
+    const artikelen = [];
 
+    if (!tekst || !tekst.trim()) {
+      console.warn('[Parser] Lege of ongeldige invoer.');
+      return artikelen;
+    }
+
+    // Normaliseer regeleinden
     const regels = tekst
       .replace(/\r\n/g, '\n')
       .replace(/\r/g, '\n')
       .split('\n');
 
-    const artikelen = [];
+    console.log('[Parser] Start analyse | totaal regels:', regels.length);
+
     let huidigArtikel = null;
-    let inhoudRegels = [];
+    let inhoudBuffer  = [];
+
+    function slaArtikelOp() {
+      if (!huidigArtikel) return;
+      huidigArtikel.inhoud = inhoudBuffer.join('\n').trim();
+      artikelen.push({ ...huidigArtikel }); // spread: altijd nieuw object
+      console.log('[Parser] Opgeslagen: Art.' + huidigArtikel.artikel +
+        ' | inhoud ' + huidigArtikel.inhoud.length + ' tekens');
+    }
 
     for (let i = 0; i < regels.length; i++) {
       const regel = regels[i];
-      const kop = parseArtikelKop(regel);
+      const kop   = isArtikelKop(regel);
 
       if (kop) {
-        // Sla vorig artikel op
-        if (huidigArtikel) {
-          huidigArtikel.inhoud = inhoudRegels.join('\n').trim();
-          artikelen.push(huidigArtikel);
-          console.debug('[Parser] Artikel opgeslagen:', huidigArtikel.artikel, '| regels inhoud:', inhoudRegels.length);
-        }
-        // Start nieuw artikel
+        // Sla vorig artikel op vóór we beginnen met het nieuwe
+        slaArtikelOp();
+
+        // Begin nieuw artikel — altijd een nieuw object
         huidigArtikel = {
           artikel: kop.nummer,
-          titel: kop.titel,
-          inhoud: ''
+          titel:   kop.titel,
+          inhoud:  ''
         };
-        inhoudRegels = [];
-        console.debug('[Parser] Nieuw artikel gevonden op regel', i + 1, '| nummer:', kop.nummer, '| titel:', kop.titel || '(geen)');
+        inhoudBuffer = [];
+
+        console.log('[Parser] Nieuw artikel op regel ' + (i + 1) +
+          ' | nummer: ' + kop.nummer +
+          (kop.titel ? ' | titel: ' + kop.titel : ' | (geen titel)'));
       } else if (huidigArtikel) {
-        // Voeg regel toe aan huidig artikel
-        inhoudRegels.push(regel);
+        // Voeg regel toe aan inhoud van huidig artikel
+        inhoudBuffer.push(regel);
       }
+      // Regels vóór het eerste artikel worden genegeerd
     }
 
-    // Vergeet het laatste artikel niet
-    if (huidigArtikel) {
-      huidigArtikel.inhoud = inhoudRegels.join('\n').trim();
-      artikelen.push(huidigArtikel);
-      console.debug('[Parser] Laatste artikel opgeslagen:', huidigArtikel.artikel);
-    }
+    // Laatste artikel opslaan (wordt niet gevolgd door een nieuw artikel)
+    slaArtikelOp();
 
-    console.log('[Parser] Totaal gevonden:', artikelen.length, 'artikelen');
-    console.log('[Parser] Artikelnummers:', artikelen.map(a => a.artikel).join(', '));
+    console.log('[Parser] Klaar | gevonden: ' + artikelen.length +
+      ' | nummers: ' + artikelen.map(a => a.artikel).join(', '));
 
     return artikelen;
   }
 
   /**
-   * Testdata: 2 voorbeeldartikelen voor directe test zonder bestand.
+   * Testdata: 3 artikelen voor directe test zonder bestand.
+   * Bewust 3 artikelen zodat zichtbaar is dat de parser meer dan 2 aankan.
    */
   const TESTDATA = `Art. 2.5.3 Staandehouding verdachten en getuigen
 
@@ -96,9 +112,15 @@ Art. 2.5.4 Vasthouding ter plaatse
 
 2. De tijd tussen middernacht en negen uur telt voor de toepassing van het eerste lid niet mee.
 
-3. De verdachte aan wie zijn vrijheid wordt ontnomen op grond van dit artikel heeft recht op bijstand van een raadsman.`;
+3. De verdachte aan wie zijn vrijheid wordt ontnomen op grond van dit artikel heeft recht op bijstand van een raadsman.
 
-  return { parseerArtikelen, parseArtikelKop, TESTDATA };
+Art. 2.5.5 Recht op mededeling
+
+1. De verdachte heeft het recht dat hem zo spoedig mogelijk wordt meegedeeld ter zake van welk strafbaar feit hij als verdachte wordt aangemerkt.
+
+2. Dit recht geldt zowel bij staandehouding als bij aanhouding.`;
+
+  return { parseerArtikelen, isArtikelKop, TESTDATA };
 
 })();
 
