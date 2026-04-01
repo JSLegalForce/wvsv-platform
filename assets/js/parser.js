@@ -1,47 +1,89 @@
 /**
- * parser.js — WvSv artikelparser
- * Herkent en splitst wetsartikelen uit platte tekst.
+ * parser.js — WvSv artikelparser (verbeterde versie)
+ *
+ * Aanpak: regel-voor-regel parsing
+ * - Elke regel wordt gecontroleerd of het een artikelkop is
+ * - Artikelnummer, titel en inhoud worden apart opgeslagen
+ * - Inhoud bevat NIET de artikelkop zelf (geen dubbele info)
  */
 
 const WvSvParser = (() => {
 
-  function normaliseer(tekst) {
-    return tekst
+  // Patroon: herkent een regel die BEGINT met Art./Artikel + nummer
+  // Voorbeelden: "Art. 2.5.3", "Artikel 52", "art. 52a", "Art. 1.4.8"
+  const ARTIKEL_KOP_REGEX = /^(Art(?:ikel)?)\.?\s+(\d[\d.]*[a-z]?)\b(.*)/i;
+
+  /**
+   * Controleer of een regel een artikelkop is.
+   * Geeft null terug als het geen artikelkop is.
+   * Geeft { nummer, titel } terug als het wel een artikelkop is.
+   */
+  function parseArtikelKop(regel) {
+    const m = ARTIKEL_KOP_REGEX.exec(regel.trim());
+    if (!m) return null;
+    return {
+      nummer: m[2].trim(),
+      titel: m[3].trim()
+    };
+  }
+
+  /**
+   * Hoofd-parserfunctie: lees tekst regel voor regel.
+   * Per artikel: sla nummer, titel en alle volgende regels op als inhoud.
+   */
+  function parseerArtikelen(tekst) {
+    if (!tekst || !tekst.trim()) return [];
+
+    const regels = tekst
       .replace(/\r\n/g, '\n')
       .replace(/\r/g, '\n')
-      .replace(/\t/g, ' ')
-      .replace(/ {2,}/g, ' ')
-      .trim();
+      .split('\n');
+
+    const artikelen = [];
+    let huidigArtikel = null;
+    let inhoudRegels = [];
+
+    for (let i = 0; i < regels.length; i++) {
+      const regel = regels[i];
+      const kop = parseArtikelKop(regel);
+
+      if (kop) {
+        // Sla vorig artikel op
+        if (huidigArtikel) {
+          huidigArtikel.inhoud = inhoudRegels.join('\n').trim();
+          artikelen.push(huidigArtikel);
+          console.debug('[Parser] Artikel opgeslagen:', huidigArtikel.artikel, '| regels inhoud:', inhoudRegels.length);
+        }
+        // Start nieuw artikel
+        huidigArtikel = {
+          artikel: kop.nummer,
+          titel: kop.titel,
+          inhoud: ''
+        };
+        inhoudRegels = [];
+        console.debug('[Parser] Nieuw artikel gevonden op regel', i + 1, '| nummer:', kop.nummer, '| titel:', kop.titel || '(geen)');
+      } else if (huidigArtikel) {
+        // Voeg regel toe aan huidig artikel
+        inhoudRegels.push(regel);
+      }
+    }
+
+    // Vergeet het laatste artikel niet
+    if (huidigArtikel) {
+      huidigArtikel.inhoud = inhoudRegels.join('\n').trim();
+      artikelen.push(huidigArtikel);
+      console.debug('[Parser] Laatste artikel opgeslagen:', huidigArtikel.artikel);
+    }
+
+    console.log('[Parser] Totaal gevonden:', artikelen.length, 'artikelen');
+    console.log('[Parser] Artikelnummers:', artikelen.map(a => a.artikel).join(', '));
+
+    return artikelen;
   }
 
-  function parseerArtikelen(tekst) {
-    if (!tekst || tekst.trim().length === 0) return [];
-    const genormaliseerd = normaliseer(tekst);
-    const resultaten = [];
-    const matches = [];
-    let match;
-    const regex = /(?:^|\n)(Art(?:ikel)?\.?\s+(\d[\d.]*[a-z]?))/gi;
-    while ((match = regex.exec(genormaliseerd)) !== null) {
-      matches.push({
-        positie: match.index + (match[0].startsWith('\n') ? 1 : 0),
-        volleMatch: match[1].trim(),
-        nummer: match[2].trim()
-      });
-    }
-    if (matches.length === 0) return [];
-    for (let i = 0; i < matches.length; i++) {
-      const huidig = matches[i];
-      const volgend = matches[i + 1];
-      const inhoud = genormaliseerd.substring(huidig.positie, volgend ? volgend.positie : undefined).trim();
-      const regels = inhoud.split('\n').filter(r => r.trim().length > 0);
-      const eerstRegel = regels[0] || '';
-      const titelMatch = eerstRegel.replace(huidig.volleMatch, '').trim();
-      const titel = titelMatch.length > 0 && titelMatch.length < 120 ? titelMatch : '';
-      resultaten.push({ artikel: huidig.nummer, titel: titel, inhoud: inhoud });
-    }
-    return resultaten;
-  }
-
+  /**
+   * Testdata: 2 voorbeeldartikelen voor directe test zonder bestand.
+   */
   const TESTDATA = `Art. 2.5.3 Staandehouding verdachten en getuigen
 
 1. Iedere opsporingsambtenaar kan de verdachte staande houden om zijn identiteit vast te stellen op de wijze, bedoeld in artikel 1.4.8, eerste lid. Hij onderzoekt tevens een identiteitsbewijs als bedoeld in artikel 1 van de Wet op de identificatieplicht.
@@ -56,7 +98,8 @@ Art. 2.5.4 Vasthouding ter plaatse
 
 3. De verdachte aan wie zijn vrijheid wordt ontnomen op grond van dit artikel heeft recht op bijstand van een raadsman.`;
 
-  return { parseerArtikelen, normaliseer, TESTDATA };
+  return { parseerArtikelen, parseArtikelKop, TESTDATA };
+
 })();
 
 if (typeof module !== 'undefined') module.exports = WvSvParser;
