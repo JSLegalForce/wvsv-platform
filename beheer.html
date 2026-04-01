@@ -1288,6 +1288,10 @@ function e(s) {
     .replace(/</g,"&lt;").replace(/>/g,"&gt;");
 }
 
+loadDataFallback().then(() => {
+  document.getElementById("ww").focus();
+});
+
 /* Start - v2 */
 loadDataFallback().then(() => {
   document.getElementById("ww").focus();
