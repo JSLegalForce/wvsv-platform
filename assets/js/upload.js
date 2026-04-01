@@ -19,28 +19,53 @@ const WvSvUpload = (() => {
   }
 
   function escapeHTML(str) {
-    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    return String(str)
+      .replace(/&/g,'&amp;')
+      .replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;');
   }
 
+  /**
+   * Toon gevonden artikelen als kaartjes.
+   * Verbeterd: geen dubbele artikelkop in de preview.
+   * Structuur per kaartje:
+   *   - badge met artikelnummer
+   *   - titel (indien aanwezig)
+   *   - eerste 200 tekens van ALLEEN de inhoud (niet de kop)
+   */
   function toonResultaten(artikelen) {
     const container = document.getElementById('upload-resultaten');
     const teller = document.getElementById('upload-teller');
     if (!container) return;
+
     gevondenArtikelen = artikelen;
+
     if (artikelen.length === 0) {
-      container.innerHTML = '<div class="upload-leeg">Geen artikelen gevonden. Controleer of het bestand artikelnummers bevat zoals <strong>Art. 2.5.3</strong>.</div>';
+      container.innerHTML = '<div class="upload-leeg">Geen artikelen gevonden. Controleer of het bestand artikelnummers bevat zoals <strong>Art. 2.5.3</strong> of <strong>Artikel 52</strong>.</div>';
       if (teller) teller.textContent = '';
+      document.getElementById('btn-download')?.setAttribute('disabled', 'true');
       return;
     }
+
     if (teller) teller.textContent = artikelen.length + ' artikel' + (artikelen.length !== 1 ? 'en' : '') + ' gevonden';
+
     container.innerHTML = artikelen.map(art => {
-      const preview = art.inhoud.length > 200 ? art.inhoud.substring(0, 200).trim() + '\u2026' : art.inhoud;
+      // Inhoud bevat nu ALLEEN de tekst na de artikelkop (geen dubbele info)
+      const inhoudTekst = art.inhoud || '';
+      const preview = inhoudTekst.length > 200
+        ? inhoudTekst.substring(0, 200).trim() + '\u2026'
+        : inhoudTekst.trim();
+
       return '<div class="upload-artikel">' +
         '<div class="upload-artikel-kop">' +
-        '<span class="upload-artikel-nr">Art. ' + escapeHTML(art.artikel) + '</span>' +
-        (art.titel ? '<span class="upload-artikel-titel">' + escapeHTML(art.titel) + '</span>' : '') +
-        '</div><div class="upload-artikel-preview">' + escapeHTML(preview) + '</div></div>';
+          '<span class="upload-artikel-nr">Art. ' + escapeHTML(art.artikel) + '</span>' +
+          (art.titel ? '<span class="upload-artikel-titel">' + escapeHTML(art.titel) + '</span>' : '') +
+        '</div>' +
+        (preview ? '<div class="upload-artikel-preview">' + escapeHTML(preview) + '</div>' : '') +
+      '</div>';
     }).join('');
+
     document.getElementById('btn-download')?.removeAttribute('disabled');
   }
 
@@ -101,7 +126,10 @@ const WvSvUpload = (() => {
     const bestand = event.target.files[0];
     if (!bestand) return;
     const ext = bestand.name.split('.').pop().toLowerCase();
-    if (!['txt','md','pdf','docx'].includes(ext)) { setStatus('Bestandstype .' + ext + ' is niet toegestaan.', 'fout'); return; }
+    if (!['txt','md','pdf','docx'].includes(ext)) {
+      setStatus('Bestandstype .' + ext + ' is niet toegestaan.', 'fout');
+      return;
+    }
     setStatus('Gekozen: ' + bestand.name + ' (' + ext.toUpperCase() + ', ' + (bestand.size/1024).toFixed(1) + ' KB)', 'info');
     document.getElementById('btn-analyseer')?.removeAttribute('disabled');
     document.getElementById('upload-resultaten').innerHTML = '';
@@ -121,9 +149,15 @@ const WvSvUpload = (() => {
       setStatus('Artikelen worden herkend…', 'info');
       const artikelen = WvSvParser.parseerArtikelen(tekst);
       toonResultaten(artikelen);
-      setStatus(artikelen.length > 0 ? 'Klaar — ' + artikelen.length + ' artikel(en) gevonden.' : 'Geen artikelen herkend.', artikelen.length > 0 ? 'succes' : 'waarschuwing');
+      setStatus(
+        artikelen.length > 0
+          ? 'Klaar — ' + artikelen.length + ' artikel(en) gevonden in ' + bestand.name + '.'
+          : 'Geen artikelen herkend. Controleer of het bestand artikelnummers bevat.',
+        artikelen.length > 0 ? 'succes' : 'waarschuwing'
+      );
     } catch (err) {
       setStatus('Fout: ' + err.message, 'fout');
+      console.error('[Upload] Fout:', err);
     } finally { toonLader(false); }
   }
 
