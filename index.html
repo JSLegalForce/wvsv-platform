@@ -34,7 +34,7 @@ body{font-family:'Outfit',sans-serif;background:var(--achtergrond);color:var(--t
 .header-schild{width:36px;height:42px;flex-shrink:0;}
 .header-naam{font-weight:700;font-size:1.35rem;letter-spacing:0.04em;color:var(--wit);}
 .header-lijn{height:3px;background:linear-gradient(90deg,transparent,var(--zilver),transparent);opacity:0.4;}
-.header-sub{text-align:center;padding:0 24px 13px;font-size:0.78rem;color:rgba(255,255,255,0.55);letter-spacing:0.08em;text-transform:uppercase;font-weight:500;}
+.header-sub{text-align:center;padding:20px 24px 13px;font-size:0.78rem;color:rgba(255,255,255,0.55);letter-spacing:0.08em;text-transform:uppercase;font-weight:500;}
 
 /* ── Startscherm ── */
 #scherm-start{flex:1;display:flex;align-items:center;justify-content:center;padding:32px 16px;}
@@ -44,10 +44,10 @@ body{font-family:'Outfit',sans-serif;background:var(--achtergrond);color:var(--t
 .start-sub{font-size:0.95rem;color:var(--tekst-mid);margin-bottom:32px;line-height:1.6;}
 .rol-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px;}
 @media(max-width:480px){.rol-grid{grid-template-columns:1fr;}}
-.rol-knop{display:flex;align-items:center;gap:10px;padding:13px 16px;background:var(--achtergrond);border:2px solid var(--grijs-mid);border-radius:9px;cursor:pointer;text-align:left;transition:all 0.2s;font-family:'Outfit',sans-serif;}
-.rol-knop:hover{background:#eef1f9;border-color:var(--blauw-licht);}
-.rol-bol{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
-.rol-knop-naam{font-size:0.88rem;font-weight:700;color:var(--tekst);}
+.rol-knop{display:flex;align-items:center;gap:12px;padding:18px 20px;background:linear-gradient(135deg, var(--wit) 0%, var(--achtergrond) 100%);border:2px solid var(--blauw-licht);border-radius:12px;cursor:pointer;text-align:left;transition:all 0.3s;font-family:'Outfit',sans-serif;box-shadow: 0 2px 8px rgba(26,42,94,0.1);}
+.rol-knop:hover{background:linear-gradient(135deg, #f0f2f5 0%, #e8ecf5 100%);border-color:var(--blauw);transform:translateY(-1px);box-shadow: 0 4px 12px rgba(26,42,94,0.15);}
+.rol-bol{width:12px;height:12px;border-radius:50%;flex-shrink:0;}
+.rol-knop-naam{font-size:1rem;font-weight:700;color:var(--tekst);}
 
 /* ── Bevoegdhedenscherm ── */
 #scherm-bev{display:none;flex:1;flex-direction:column;}
@@ -186,7 +186,7 @@ body{font-family:'Outfit',sans-serif;background:var(--achtergrond);color:var(--t
     <span class="header-naam">Legal Force</span>
   </div>
   <div class="header-lijn"></div>
-  <p class="header-sub">Wetboek van Strafvordering 2029</p>
+  <p class="header-sub">Nieuw Wetboek van Strafvordering</p>
 </header>
 
 <!-- ── Startscherm: Rol kiezen ── -->
