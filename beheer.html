@@ -268,7 +268,6 @@ body {
   cursor: pointer; border: 2px solid transparent;
   transition: background 0.15s, border-color 0.15s;
   margin-bottom: 2px;
-  pointer-events: auto !important;
 }
 .rol-item:hover { background: var(--achtergrond); }
 .rol-item.actief { background: #eef1f9; border-color: var(--blauw-licht); }
@@ -697,46 +696,15 @@ const ROLLEN = {
 };
 
 /* ════════ STATE ════════ */
-let actief = localStorage.getItem("jslf_actief_rol") || "gewoon";
-if (!ROLLEN[actief]) actief = "gewoon";
+let actief = "gewoon";
 let data = JSON.parse(localStorage.getItem("jslf_data") || "{}");
 Object.keys(ROLLEN).forEach(r => { if (!data[r]) data[r] = []; });
-// Migreer bestaande data naar nieuwe velden
-Object.keys(data).forEach(function(rol) {
-  (data[rol] || []).forEach(function(bev) {
-    if (!bev.winType) bev.winType = 'tekst';
-    if (!bev.winBullets) bev.winBullets = [];
-    if (!bev.samArtikelen) bev.samArtikelen = [];
-    if (bev.samNvt === undefined) bev.samNvt = false;
-  });
-});
-
-function loadDataFallback() {
-  console.log('loadDataFallback start', {opgeslagen: Object.values(data).reduce((a,b)=>a+(Array.isArray(b)?b.length:0),0)});
-  if (Object.values(data).some(arr => arr && arr.length > 0)) return Promise.resolve();
-  return fetch('data.json')
-    .then(resp => resp.ok ? resp.json() : {})
-    .then(json => {
-      console.log('loadDataFallback fetched', json && typeof json === 'object' ? Object.keys(json).map(r => [r, json[r] && json[r].length]) : null);
-      if (json && typeof json === 'object' && Object.keys(json).length) {
-        Object.keys(ROLLEN).forEach(r => {
-          if (Array.isArray(json[r]) && json[r].length > 0) data[r] = json[r];
-        });
-        opslaan();
-      }
-    })
-    .catch(err => {
-      console.error('loadDataFallback error', err);
-    });
-}
 
 /* ════════ LOGIN ════════ */
 function login() {
   if (document.getElementById("ww").value === WW) {
     document.getElementById("login").style.display = "none";
     document.getElementById("app").classList.add("aan");
-    console.log('login succes', { actief, totalRecords: Object.values(data).reduce((a,b)=>a+(Array.isArray(b)?b.length:0),0) });
-    highlightActiefRol();
     render(); tellingen();
   } else {
     document.getElementById("login-fout").style.display = "block";
@@ -754,21 +722,10 @@ function uitloggen() {
 
 /* ════════ ROL ════════ */
 function kiesRol(el) {
-  if (!el || !el.dataset || !el.dataset.rol) return;
-  console.log('kiesRol clicked', el.dataset.rol, 'actief-vorige', actief);
-  if (actief === el.dataset.rol) return;
-  opslaan();
+  document.querySelectorAll(".rol-item").forEach(r => r.classList.remove("actief"));
+  el.classList.add("actief");
   actief = el.dataset.rol;
-  localStorage.setItem("jslf_actief_rol", actief);
-  highlightActiefRol();
   render();
-  tellingen();
-}
-
-function highlightActiefRol() {
-  document.querySelectorAll(".rol-item").forEach(r => {
-    r.classList.toggle("actief", r.dataset.rol === actief);
-  });
 }
 
 function tellingen() {
@@ -782,7 +739,6 @@ function tellingen() {
 function render() {
   const rol = ROLLEN[actief];
   const lijst = data[actief] || [];
-  highlightActiefRol();
 
   let html = `
     <div class="rol-header">
@@ -817,13 +773,6 @@ function render() {
   }
 
   document.getElementById("inhoud").innerHTML = html;
-  bindRolEvents();
-}
-
-function bindRolEvents() {
-  document.querySelectorAll(".rol-item").forEach(item => {
-    item.onclick = () => kiesRol(item);
-  });
 }
 
 /* ════════ BLOK HTML ════════ */
@@ -934,7 +883,19 @@ function blokHTML(b, i) {
             ${b.winNvt ? '✓ N.v.t.' : 'N.v.t. — niet van toepassing'}
           </button>
         </div>
-        ${renderWinSectie(b, i)}
+        <div id="win-sectie-${i}" style="${b.winNvt ? 'display:none' : ''}">
+          <div class="veld">
+            <div class="veld-top">
+              <div class="veld-nr" style="background:#1a7a4a">4</div>
+              <div class="veld-naam" style="color:#1a7a4a">Wat is nieuw</div>
+              <span class="veld-hint">Zichtbaar als knop op cursistenpagina</span>
+            </div>
+            <div class="textarea-wrap" id="wrap-win-${i}">
+              <textarea class="groot" placeholder="Beschrijf wat er nieuw is..." oninput="upd(${i},'watIsNieuw',this.value)">${e(b.watIsNieuw || '')}</textarea>
+              <button type="button" class="textarea-uitvouw" onclick="toggleGroot('win',${i})" title="Vergroot/verklein">⧂</button>
+            </div>
+          </div>
+        </div>
         <div class="veld">
       <div class="veld-top">
         <div class="veld-nr">5</div>
@@ -1142,25 +1103,6 @@ function toggleSamNvt(event, i) {
     opslaan();
     render();
   }
-  function setWinType(event, i, type) {
-    event.stopPropagation();
-    data[actief][i].winType = type;
-    if (type === 'bullets' && !data[actief][i].winBullets) data[actief][i].winBullets = [''];
-    opslaan(); render();
-  }
-  function updWinBullet(i, bi, waarde) {
-    if (!data[actief][i].winBullets) data[actief][i].winBullets = [];
-    data[actief][i].winBullets[bi] = waarde; opslaan();
-  }
-  function voegWinBulletToe(event, i) {
-    event.stopPropagation();
-    if (!data[actief][i].winBullets) data[actief][i].winBullets = [];
-    data[actief][i].winBullets.push(''); opslaan(); render();
-  }
-  function verwijderWinBullet(event, i, bi) {
-    event.stopPropagation();
-    if (data[actief][i].winBullets) { data[actief][i].winBullets.splice(bi, 1); opslaan(); render(); }
-  }
   function toggleWinNvt(event, i) {
     event.stopPropagation();
     data[actief][i].winNvt = !data[actief][i].winNvt;
@@ -1213,7 +1155,7 @@ function toggleNvt(event, i) {
 }
 
 function voegToe() {
-  data[actief].push({ naam:"", artikel:"", nieuw:"", watIsNieuw:"", winNvt:false, winType:"tekst", winBullets:[], samArtikelen:[""], samNvt:false, kort:"", oud:"", oudNaam:"", oudArtikel:"", oudNvt:false, mvt:"", mvtNvt:false, _open:true });
+  data[actief].push({ naam:"", artikel:"", nieuw:"", watIsNieuw:"", winNvt:false, samArtikelen:[""], samNvt:false, kort:"", oud:"", oudNaam:"", oudArtikel:"", oudNvt:false, mvt:"", mvtNvt:false, _open:true });
   opslaan(); tellingen(); render();
   setTimeout(() => {
     const blokken = document.querySelectorAll(".bev");
@@ -1301,14 +1243,8 @@ function e(s) {
     .replace(/</g,"&lt;").replace(/>/g,"&gt;");
 }
 
-loadDataFallback().then(() => {
-  document.getElementById("ww").focus();
-});
-
 /* Start - v2 */
-loadDataFallback().then(() => {
-  document.getElementById("ww").focus();
-});
+document.getElementById("ww").focus();
 </script>
 </body>
 </html>
