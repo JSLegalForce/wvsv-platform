@@ -712,10 +712,12 @@ Object.keys(data).forEach(function(rol) {
 });
 
 function loadDataFallback() {
+  console.log('loadDataFallback start', {opgeslagen: Object.values(data).reduce((a,b)=>a+(Array.isArray(b)?b.length:0),0)});
   if (Object.values(data).some(arr => arr && arr.length > 0)) return Promise.resolve();
   return fetch('data.json')
     .then(resp => resp.ok ? resp.json() : {})
     .then(json => {
+      console.log('loadDataFallback fetched', json && typeof json === 'object' ? Object.keys(json).map(r => [r, json[r] && json[r].length]) : null);
       if (json && typeof json === 'object' && Object.keys(json).length) {
         Object.keys(ROLLEN).forEach(r => {
           if (Array.isArray(json[r]) && json[r].length > 0) data[r] = json[r];
@@ -723,7 +725,9 @@ function loadDataFallback() {
         opslaan();
       }
     })
-    .catch(() => {});
+    .catch(err => {
+      console.error('loadDataFallback error', err);
+    });
 }
 
 /* ════════ LOGIN ════════ */
@@ -731,6 +735,7 @@ function login() {
   if (document.getElementById("ww").value === WW) {
     document.getElementById("login").style.display = "none";
     document.getElementById("app").classList.add("aan");
+    console.log('login succes', { actief, totalRecords: Object.values(data).reduce((a,b)=>a+(Array.isArray(b)?b.length:0),0) });
     highlightActiefRol();
     render(); tellingen();
   } else {
@@ -750,6 +755,7 @@ function uitloggen() {
 /* ════════ ROL ════════ */
 function kiesRol(el) {
   if (!el || !el.dataset || !el.dataset.rol) return;
+  console.log('kiesRol clicked', el.dataset.rol, 'actief-vorige', actief);
   if (actief === el.dataset.rol) return;
   opslaan();
   actief = el.dataset.rol;
@@ -811,6 +817,13 @@ function render() {
   }
 
   document.getElementById("inhoud").innerHTML = html;
+  bindRolEvents();
+}
+
+function bindRolEvents() {
+  document.querySelectorAll(".rol-item").forEach(item => {
+    item.onclick = () => kiesRol(item);
+  });
 }
 
 /* ════════ BLOK HTML ════════ */
