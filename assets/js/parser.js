@@ -1,105 +1,53 @@
 /**
- * parser.js — WvSv artikelparser v3
- *
- * Aanpak: strikt regel-voor-regel
- * - Elke analyse start met een LEGE array (geen state tussen aanroepen)
- * - Artikelkop wordt herkend op basis van regex per regel
- * - Artikelnummer, titel en inhoud strikt gescheiden
- * - Inhoud bevat NOOIT de artikelkop zelf
- * - Verwerkt het VOLLEDIGE document tot de laatste regel
+ * parser.js — WvSv artikelparser v4
+ * Regel-voor-regel aanpak. Altijd verse array. Geen globale state.
  */
-
 const WvSvParser = (() => {
 
-  // Herkent een regel die BEGINT met Art./Artikel + nummer
-  // Voorbeelden: "Art. 2.5.3 Titel", "Artikel 52", "art. 52a Naam"
-  const ARTIKEL_KOP_REGEX = /^(Art(?:ikel)?\.?)\s+(\d[\d.]*[a-z]?)\b(.*)/i;
+  const KOP_REGEX = /^(Art(?:ikel)?\.?)\s+(\d[\d.]*[a-z]?)\b(.*)/i;
 
-  /**
-   * Controleer of een regel een artikelkop is.
-   * Geeft { nummer, titel } of null terug.
-   */
   function isArtikelKop(regel) {
-    const m = ARTIKEL_KOP_REGEX.exec(regel.trim());
+    const m = KOP_REGEX.exec(regel.trim());
     if (!m) return null;
-    return {
-      nummer: m[2].trim(),
-      titel:  m[3].trim()
-    };
+    return { nummer: m[2].trim(), titel: m[3].trim() };
   }
 
-  /**
-   * Hoofd-parserfunctie.
-   * Maakt ALTIJD een nieuwe lege array — geen hergebruik van state.
-   * Verwerkt ALLE regels tot het einde van het document.
-   */
   function parseerArtikelen(tekst) {
-    // Altijd verse array — geen risico op hergebruik
     const artikelen = [];
-
     if (!tekst || !tekst.trim()) {
-      console.warn('[Parser] Lege of ongeldige invoer.');
+      console.warn('[Parser] Lege invoer.');
       return artikelen;
     }
+    const regels = tekst.replace(/\r\n/g,'\n').replace(/\r/g,'\n').split('\n');
+    console.log('[Parser] Start | regels:', regels.length);
 
-    // Normaliseer regeleinden
-    const regels = tekst
-      .replace(/\r\n/g, '\n')
-      .replace(/\r/g, '\n')
-      .split('\n');
+    let huidig = null;
+    let buffer = [];
 
-    console.log('[Parser] Start analyse | totaal regels:', regels.length);
-
-    let huidigArtikel = null;
-    let inhoudBuffer  = [];
-
-    function slaArtikelOp() {
-      if (!huidigArtikel) return;
-      huidigArtikel.inhoud = inhoudBuffer.join('\n').trim();
-      artikelen.push({ ...huidigArtikel }); // spread: altijd nieuw object
-      console.log('[Parser] Opgeslagen: Art.' + huidigArtikel.artikel +
-        ' | inhoud ' + huidigArtikel.inhoud.length + ' tekens');
+    function opslaan() {
+      if (!huidig) return;
+      const obj = { artikel: huidig.nummer, titel: huidig.titel, inhoud: buffer.join('\n').trim() };
+      artikelen.push(obj);
+      console.log('[Parser] Opgeslagen Art.' + obj.artikel + ' | ' + obj.inhoud.length + ' tekens');
     }
 
     for (let i = 0; i < regels.length; i++) {
-      const regel = regels[i];
-      const kop   = isArtikelKop(regel);
-
+      const kop = isArtikelKop(regels[i]);
       if (kop) {
-        // Sla vorig artikel op vóór we beginnen met het nieuwe
-        slaArtikelOp();
-
-        // Begin nieuw artikel — altijd een nieuw object
-        huidigArtikel = {
-          artikel: kop.nummer,
-          titel:   kop.titel,
-          inhoud:  ''
-        };
-        inhoudBuffer = [];
-
-        console.log('[Parser] Nieuw artikel op regel ' + (i + 1) +
-          ' | nummer: ' + kop.nummer +
-          (kop.titel ? ' | titel: ' + kop.titel : ' | (geen titel)'));
-      } else if (huidigArtikel) {
-        // Voeg regel toe aan inhoud van huidig artikel
-        inhoudBuffer.push(regel);
+        opslaan();
+        huidig = { nummer: kop.nummer, titel: kop.titel };
+        buffer = [];
+        console.log('[Parser] Nieuw artikel regel ' + (i+1) + ': ' + kop.nummer + (kop.titel ? ' - ' + kop.titel : ''));
+      } else if (huidig) {
+        buffer.push(regels[i]);
       }
-      // Regels vóór het eerste artikel worden genegeerd
     }
+    opslaan();
 
-    // Laatste artikel opslaan (wordt niet gevolgd door een nieuw artikel)
-    slaArtikelOp();
-
-    console.log('[Parser] Klaar | gevonden: ' + artikelen.length +
-      ' | nummers: ' + artikelen.map(a => a.artikel).join(', '));
-
+    console.log('[Parser] Klaar | gevonden:', artikelen.length, '| nummers:', artikelen.map(a=>a.artikel).join(', '));
     return artikelen;
   }
 
-  /**
-   * Testdata: 3 artikelen voor directe test zonder bestand.
-   * Bewust 3 artikelen zodat zichtbaar is dat de parser meer dan 2 aankan.
-   */
   const TESTDATA = `Art. 2.5.3 Staandehouding verdachten en getuigen
 
 1. Iedere opsporingsambtenaar kan de verdachte staande houden om zijn identiteit vast te stellen op de wijze, bedoeld in artikel 1.4.8, eerste lid. Hij onderzoekt tevens een identiteitsbewijs als bedoeld in artikel 1 van de Wet op de identificatieplicht.
@@ -121,7 +69,6 @@ Art. 2.5.5 Recht op mededeling
 2. Dit recht geldt zowel bij staandehouding als bij aanhouding.`;
 
   return { parseerArtikelen, isArtikelKop, TESTDATA };
-
 })();
 
 if (typeof module !== 'undefined') module.exports = WvSvParser;
