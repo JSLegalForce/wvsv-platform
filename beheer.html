@@ -268,6 +268,7 @@ body {
   cursor: pointer; border: 2px solid transparent;
   transition: background 0.15s, border-color 0.15s;
   margin-bottom: 2px;
+  pointer-events: auto !important;
 }
 .rol-item:hover { background: var(--achtergrond); }
 .rol-item.actief { background: #eef1f9; border-color: var(--blauw-licht); }
@@ -696,24 +697,41 @@ const ROLLEN = {
 };
 
 /* ════════ STATE ════════ */
-let actief = "gewoon";
+let actief = localStorage.getItem("jslf_actief_rol") || "gewoon";
+if (!ROLLEN[actief]) actief = "gewoon";
 let data = JSON.parse(localStorage.getItem("jslf_data") || "{}");
 Object.keys(ROLLEN).forEach(r => { if (!data[r]) data[r] = []; });
-  // Migreer bestaande data naar nieuwe velden
-  Object.keys(data).forEach(function(rol) {
-    (data[rol] || []).forEach(function(bev) {
-      if (!bev.winType) bev.winType = 'tekst';
-      if (!bev.winBullets) bev.winBullets = [];
-      if (!bev.samArtikelen) bev.samArtikelen = [];
-      if (bev.samNvt === undefined) bev.samNvt = false;
-    });
+// Migreer bestaande data naar nieuwe velden
+Object.keys(data).forEach(function(rol) {
+  (data[rol] || []).forEach(function(bev) {
+    if (!bev.winType) bev.winType = 'tekst';
+    if (!bev.winBullets) bev.winBullets = [];
+    if (!bev.samArtikelen) bev.samArtikelen = [];
+    if (bev.samNvt === undefined) bev.samNvt = false;
   });
+});
+
+function loadDataFallback() {
+  if (Object.values(data).some(arr => arr && arr.length > 0)) return Promise.resolve();
+  return fetch('data.json')
+    .then(resp => resp.ok ? resp.json() : {})
+    .then(json => {
+      if (json && typeof json === 'object' && Object.keys(json).length) {
+        Object.keys(ROLLEN).forEach(r => {
+          if (Array.isArray(json[r]) && json[r].length > 0) data[r] = json[r];
+        });
+        opslaan();
+      }
+    })
+    .catch(() => {});
+}
 
 /* ════════ LOGIN ════════ */
 function login() {
   if (document.getElementById("ww").value === WW) {
     document.getElementById("login").style.display = "none";
     document.getElementById("app").classList.add("aan");
+    highlightActiefRol();
     render(); tellingen();
   } else {
     document.getElementById("login-fout").style.display = "block";
@@ -731,10 +749,20 @@ function uitloggen() {
 
 /* ════════ ROL ════════ */
 function kiesRol(el) {
-  document.querySelectorAll(".rol-item").forEach(r => r.classList.remove("actief"));
-  el.classList.add("actief");
+  if (!el || !el.dataset || !el.dataset.rol) return;
+  if (actief === el.dataset.rol) return;
+  opslaan();
   actief = el.dataset.rol;
+  localStorage.setItem("jslf_actief_rol", actief);
+  highlightActiefRol();
   render();
+  tellingen();
+}
+
+function highlightActiefRol() {
+  document.querySelectorAll(".rol-item").forEach(r => {
+    r.classList.toggle("actief", r.dataset.rol === actief);
+  });
 }
 
 function tellingen() {
@@ -748,6 +776,7 @@ function tellingen() {
 function render() {
   const rol = ROLLEN[actief];
   const lijst = data[actief] || [];
+  highlightActiefRol();
 
   let html = `
     <div class="rol-header">
@@ -1260,7 +1289,9 @@ function e(s) {
 }
 
 /* Start - v2 */
-document.getElementById("ww").focus();
+loadDataFallback().then(() => {
+  document.getElementById("ww").focus();
+});
 </script>
 </body>
 </html>
