@@ -1,23 +1,27 @@
 /**
  * parser.js — WvSv artikelparser v4
- * Regel-voor-regel aanpak. Altijd verse array. Geen globale state.
+ * Regel-voor-regel aanpak. Altijd verse state. Geen globale variabelen.
  */
 const WvSvParser = (() => {
 
+  // Herkent een regel die begint met Art./Artikel + nummer
   const KOP_REGEX = /^(Art(?:ikel)?\.?)\s+(\d[\d.]*[a-z]?)\b(.*)/i;
 
-  function isArtikelKop(regel) {
+  function isKop(regel) {
     const m = KOP_REGEX.exec(regel.trim());
     if (!m) return null;
     return { nummer: m[2].trim(), titel: m[3].trim() };
   }
 
   function parseerArtikelen(tekst) {
+    // Altijd verse array - nooit hergebruik
     const artikelen = [];
+
     if (!tekst || !tekst.trim()) {
       console.warn('[Parser] Lege invoer.');
       return artikelen;
     }
+
     const regels = tekst.replace(/\r\n/g,'\n').replace(/\r/g,'\n').split('\n');
     console.log('[Parser] Start | regels:', regels.length);
 
@@ -26,23 +30,28 @@ const WvSvParser = (() => {
 
     function opslaan() {
       if (!huidig) return;
-      const obj = { artikel: huidig.nummer, titel: huidig.titel, inhoud: buffer.join('\n').trim() };
-      artikelen.push(obj);
-      console.log('[Parser] Opgeslagen Art.' + obj.artikel + ' | ' + obj.inhoud.length + ' tekens');
+      // Kopieer naar nieuw object — geen referentie-probleem
+      artikelen.push({
+        artikel: huidig.nummer,
+        titel:   huidig.titel,
+        inhoud:  buffer.join('\n').trim()
+      });
+      console.log('[Parser] Opgeslagen: Art.' + huidig.nummer + ' | ' + buffer.length + ' regels inhoud');
+      buffer = [];
+      huidig = null;
     }
 
     for (let i = 0; i < regels.length; i++) {
-      const kop = isArtikelKop(regels[i]);
+      const kop = isKop(regels[i]);
       if (kop) {
-        opslaan();
+        opslaan(); // vorig artikel afsluiten
         huidig = { nummer: kop.nummer, titel: kop.titel };
-        buffer = [];
-        console.log('[Parser] Nieuw artikel regel ' + (i+1) + ': ' + kop.nummer + (kop.titel ? ' - ' + kop.titel : ''));
+        console.log('[Parser] Nieuw artikel op regel ' + (i+1) + ': Art.' + kop.nummer + (kop.titel ? ' | ' + kop.titel : ''));
       } else if (huidig) {
         buffer.push(regels[i]);
       }
     }
-    opslaan();
+    opslaan(); // laatste artikel
 
     console.log('[Parser] Klaar | gevonden:', artikelen.length, '| nummers:', artikelen.map(a=>a.artikel).join(', '));
     return artikelen;
@@ -68,7 +77,7 @@ Art. 2.5.5 Recht op mededeling
 
 2. Dit recht geldt zowel bij staandehouding als bij aanhouding.`;
 
-  return { parseerArtikelen, isArtikelKop, TESTDATA };
+  return { parseerArtikelen, isKop, TESTDATA };
 })();
 
 if (typeof module !== 'undefined') module.exports = WvSvParser;
