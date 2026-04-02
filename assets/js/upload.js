@@ -10,7 +10,7 @@ const WvSvUpload = (() => {
 
   const state = {
     currentFile:    null,
-    currentSource:  null,
+    currentSource:  null,h
     parsedArticles: [],
     loadedItems:    [],
     jsonData:       null,
@@ -244,8 +244,7 @@ const WvSvUpload = (() => {
             return ch.then(function(){
               return pdf.getPage(p2).then(function(pg){
                 return pg.getTextContent().then(function(ct){
-                  tekst+=ct.items.map(function(i){return i.str;}).join(' ')+'
-';
+                  tekst+=ct.items.map(function(i){return i.str;}).join(' ')+' ';
                 });
               });
             });
