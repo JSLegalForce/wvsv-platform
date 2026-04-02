@@ -1,12 +1,10 @@
 /**
- * upload.js — WvSv uploadmodule v5
- *
- * Fix v5:
- *   - ID gesynchroniseerd met HTML: geladen-lijst (was: upload-bestandenlijst)
- *   - Bestand direct opgeslagen bij input EN drag-drop
- *   - Testdata wist bestand en vice versa
- *   - Volledige reset bij elke analyse
- *   - Verwijder-knoppen inline in geladen-lijst
+ * upload.js — WvSv uploadmodule v6
+ * Verbeteringen:
+ * - Paginering: 50 artikelen per pagina, navigeerbaar
+ * - Zoekbalk: filter op artikelnummer of titelwoord
+ * - Statistieken: totaal, boeken, hoofdstukken
+ * - Grote bestanden worden volledig verwerkt en getoond
  */
 const WvSvUpload = (() => {
 
@@ -15,48 +13,53 @@ const WvSvUpload = (() => {
     currentSource:  null,
     parsedArticles: [],
     loadedItems:    [],
-    jsonData:       null
+    jsonData:       null,
+    filterQuery:    '',
+    currentPage:    1,
+    pageSize:       50
   };
 
   function e(str) {
-    return String(str || '')
-      .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    return String(str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;')
       .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-  }
-
-  function setStatus(tekst, type) {
-    const el = document.getElementById('upload-status');
-    if (!el) return;
-    el.textContent = tekst;
-    el.className = 'upload-status upload-status--' + (type || 'info');
-    console.log('[Upload] Status (' + (type||'info') + '):', tekst);
-  }
-
-  function toonLader(aan) {
-    const el = document.getElementById('upload-lader');
-    if (el) el.style.display = aan ? 'flex' : 'none';
   }
 
   function $id(id) { return document.getElementById(id); }
 
+  function setStatus(tekst, type) {
+    const el = $id('upload-status');
+    if (!el) return;
+    el.textContent = tekst;
+    el.className = 'upload-status upload-status--'+(type||'info');
+    console.log('[Upload] Status:', tekst);
+  }
+
+  function toonLader(aan) {
+    const el = $id('upload-lader');
+    if (el) el.style.display = aan ? 'flex' : 'none';
+  }
+
+  // ── Reset ────────────────────────────────────────────────────────────
   function resetState() {
-    state.currentFile    = null;
-    state.currentSource  = null;
-    state.parsedArticles = [];
-    state.loadedItems    = [];
-    state.jsonData       = null;
+    state.currentFile = null; state.currentSource = null;
+    state.parsedArticles = []; state.loadedItems = [];
+    state.jsonData = null; state.filterQuery = '';
+    state.currentPage = 1;
     console.log('[Upload] State gereset.');
   }
 
   function resetUI() {
-    const r = $id('upload-resultaten');
-    const t = $id('upload-teller');
-    const g = $id('geladen-lijst');
-    const i = $id('upload-bestand');
-    if (r) r.innerHTML = '<div class="upload-leeg">Nog geen artikelen &mdash; analyseer een bestand of laad de testdata.</div>';
+    const r = $id('upload-resultaten'), t = $id('upload-teller');
+    const g = $id('geladen-lijst'), i = $id('upload-bestand');
+    const z = $id('upload-zoek'), p = $id('upload-paginering');
+    const s = $id('upload-stats');
+    if (r) r.innerHTML = '<div class="upload-leeg">Nog geen artikelen — analyseer een bestand of laad de testdata.</div>';
     if (t) t.textContent = '';
-    if (g) g.innerHTML  = '<div class="upload-leeg" style="padding:12px 0;">Geen bestanden geladen.</div>';
+    if (g) g.innerHTML = '<div class="upload-leeg" style="padding:12px 0;">Geen bestanden geladen.</div>';
     if (i) i.value = '';
+    if (z) z.value = '';
+    if (p) p.innerHTML = '';
+    if (s) s.innerHTML = '';
     $id('btn-analyseer')?.setAttribute('disabled','true');
     $id('btn-download')?.setAttribute('disabled','true');
     console.log('[Upload] UI gereset.');
@@ -64,256 +67,352 @@ const WvSvUpload = (() => {
 
   function volledigeReset() {
     resetState(); resetUI();
-    setStatus('Klaar \u2014 kies een bestand of laad testdata.','info');
-    console.log('[Upload] Alles gewist.');
+    setStatus('Klaar — kies een bestand of laad testdata.','info');
   }
 
+  // ── Bestandenlijst ───────────────────────────────────────────────────
   function updateBestandenlijst() {
     const lijst = $id('geladen-lijst');
     if (!lijst) return;
-    if (state.loadedItems.length === 0) {
+    if (!state.loadedItems.length) {
       lijst.innerHTML = '<div class="upload-leeg" style="padding:12px 0;">Geen bestanden geladen.</div>';
       return;
     }
-    lijst.innerHTML = state.loadedItems.map(function(item, idx) {
-      const statusKleur = item.status === 'geanalyseerd' ? 'var(--groen)'
-        : item.status === 'fout' ? 'var(--rood)' : 'var(--blauw)';
-      const bronStijl = item.bron === 'testdata'
-        ? 'background:rgba(176,112,0,0.12);color:var(--goud);'
-        : 'background:rgba(26,42,94,0.10);color:var(--blauw);';
-      return '<div class="geladen-item" id="geladen-item-' + idx + '">'
-        + '<div class="geladen-item-info">'
-          + '<span class="geladen-naam">' + e(item.naam) + '</span>'
-          + '<div class="geladen-meta">'
-            + '<span class="geladen-badge" style="background:var(--zilver);">' + e(item.type) + '</span>'
-            + '<span class="geladen-badge" style="' + bronStijl + '">' + e(item.bron) + '</span>'
-            + '<span class="geladen-type" style="color:' + statusKleur + ';font-weight:600;">' + e(item.status) + '</span>'
-          + '</div>'
-        + '</div>'
-        + '<div style="display:flex;gap:8px;align-items:center;">'
-          + (item.bron === 'testdata'
-            ? '<button class="knop-gevaar-klein" onclick="WvSvUpload.verwijderTestdata()">Verwijder testdata</button>'
-            : '<button class="knop-gevaar-klein" onclick="WvSvUpload.verwijderItem(' + idx + ')">Verwijderen</button>')
-        + '</div>'
-      + '</div>';
+    lijst.innerHTML = state.loadedItems.map(function(item,idx) {
+      const sc = item.status==='geanalyseerd'?'var(--groen)':item.status==='fout'?'var(--rood)':'var(--blauw)';
+      const bs = item.bron==='testdata'?'background:rgba(176,112,0,.12);color:var(--goud);':'background:rgba(26,42,94,.1);color:var(--blauw);';
+      return '<div class="geladen-item">'
+        +'<div class="geladen-item-info">'
+          +'<span class="geladen-naam">'+e(item.naam)+'</span>'
+          +'<div class="geladen-meta">'
+            +'<span class="geladen-badge" style="background:var(--zilver);">'+e(item.type)+'</span>'
+            +'<span class="geladen-badge" style="'+bs+'">'+e(item.bron)+'</span>'
+            +'<span class="geladen-type" style="color:'+sc+';font-weight:600;">'+e(item.status)+'</span>'
+          +'</div></div>'
+        +'<div style="display:flex;gap:8px;">'
+          +(item.bron==='testdata'
+            ?'<button class="knop-gevaar-klein" onclick="WvSvUpload.verwijderTestdata()">Verwijder testdata</button>'
+            :'<button class="knop-gevaar-klein" onclick="WvSvUpload.verwijderItem('+idx+')">Verwijderen</button>')
+        +'</div></div>';
     }).join('');
   }
 
+  // ── Statistieken ─────────────────────────────────────────────────────
+  function toonStats(artikelen) {
+    const el = $id('upload-stats');
+    if (!el || !artikelen.length) { if(el) el.innerHTML=''; return; }
+    const boeken = {};
+    artikelen.forEach(function(a) {
+      const delen = a.artikel.split('.');
+      const boek = delen[0] || '?';
+      boeken[boek] = (boeken[boek]||0)+1;
+    });
+    const boekenHtml = Object.keys(boeken).sort(function(a,b){return +a - +b;}).map(function(b) {
+      return '<span style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;background:#eef1f9;border-radius:6px;font-size:0.78rem;font-weight:600;color:var(--blauw);">Boek '+e(b)+': <strong>'+boeken[b]+'</strong></span>';
+    }).join('');
+    el.innerHTML = '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:10px 0 4px;">'
+      +'<span style="font-size:0.8rem;color:var(--tekst-mid);font-weight:600;">Verdeling:</span>'
+      +boekenHtml+'</div>';
+  }
+
+  // ── Gefilterde + gepagineerde weergave ───────────────────────────────
+  function gefilterd() {
+    const q = state.filterQuery.toLowerCase().trim();
+    if (!q) return state.parsedArticles;
+    return state.parsedArticles.filter(function(a) {
+      return a.artikel.toLowerCase().includes(q)
+        || (a.titel||'').toLowerCase().includes(q)
+        || (a.inhoud||'').toLowerCase().includes(q);
+    });
+  }
+
+  function toonPagina() {
+    const lijst = gefilterd();
+    const totaal = lijst.length;
+    const pages  = Math.ceil(totaal / state.pageSize) || 1;
+    if (state.currentPage > pages) state.currentPage = pages;
+
+    const van  = (state.currentPage-1)*state.pageSize;
+    const tot  = Math.min(van+state.pageSize, totaal);
+    const deel = lijst.slice(van,tot);
+
+    const container = $id('upload-resultaten');
+    const teller    = $id('upload-teller');
+    const pag       = $id('upload-paginering');
+
+    // Teller
+    if (teller) {
+      if (state.filterQuery) {
+        teller.textContent = totaal+' van '+state.parsedArticles.length+' artikel'+(state.parsedArticles.length!==1?'en':'')+' (filter)';
+      } else {
+        teller.textContent = state.parsedArticles.length+' artikel'+(state.parsedArticles.length!==1?'en':'')+' gevonden';
+      }
+    }
+
+    // Artikelen
+    if (container) {
+      if (!deel.length) {
+        container.innerHTML = '<div class="upload-leeg">Geen artikelen gevonden voor deze zoekopdracht.</div>';
+      } else {
+        container.innerHTML = deel.map(function(art) {
+          const inhoud = (art.inhoud||'').trim();
+          const preview = inhoud.length>400 ? inhoud.substring(0,400).trim()+'…' : inhoud;
+          return '<div class="upload-artikel">'
+            +'<div class="upload-artikel-kop">'
+              +'<span class="upload-artikel-nr">Art. '+e(art.artikel)+'</span>'
+              +(art.titel?'<span class="upload-artikel-titel">'+e(art.titel)+'</span>':'')
+            +'</div>'
+            +(preview?'<div class="upload-artikel-preview">'+e(preview)+'</div>':'')
+          +'</div>';
+        }).join('');
+      }
+    }
+
+    // Paginering
+    if (pag) {
+      if (pages <= 1) { pag.innerHTML=''; return; }
+      let html = '<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;padding:12px 0 4px;">';
+      html += '<span style="font-size:0.8rem;color:var(--tekst-mid);">'+van+'–'+tot+' van '+totaal+'</span>';
+      // Vorige
+      html += '<button onclick="WvSvUpload.naarPagina('+(state.currentPage-1)+')" '
+        +(state.currentPage<=1?'disabled':'')+' class="knop knop-secundair" style="padding:5px 12px;font-size:0.8rem;">&lsaquo;</button>';
+      // Pagina knoppen
+      for (var p2=1; p2<=pages; p2++) {
+        if (pages>10 && Math.abs(p2-state.currentPage)>2 && p2!==1 && p2!==pages) {
+          if (p2===2||p2===pages-1) html+='<span style="color:var(--zilver);">…</span>';
+          continue;
+        }
+        html += '<button onclick="WvSvUpload.naarPagina('+p2+')" class="knop '
+          +(p2===state.currentPage?'knop-primair':'knop-secundair')+'" style="padding:5px 12px;font-size:0.8rem;min-width:36px;">'+p2+'</button>';
+      }
+      // Volgende
+      html += '<button onclick="WvSvUpload.naarPagina('+(state.currentPage+1)+')" '
+        +(state.currentPage>=pages?'disabled':'')+' class="knop knop-secundair" style="padding:5px 12px;font-size:0.8rem;">&rsaquo;</button>';
+      html += '</div>';
+      pag.innerHTML = html;
+    }
+  }
+
+  function naarPagina(p2) {
+    const pages = Math.ceil(gefilterd().length/state.pageSize)||1;
+    state.currentPage = Math.max(1, Math.min(p2, pages));
+    toonPagina();
+    $id('upload-resultaten')?.scrollIntoView({behavior:'smooth',block:'start'});
+  }
+
+  // ── Resultaten initiëren ─────────────────────────────────────────────
   function toonResultaten(artikelen) {
     state.parsedArticles = artikelen;
     state.jsonData = JSON.stringify(artikelen, null, 2);
-    const container = $id('upload-resultaten');
-    const teller    = $id('upload-teller');
-    if (!artikelen || artikelen.length === 0) {
-      if (container) container.innerHTML = '<div class="upload-leeg">Geen artikelen gevonden.<br>Controleer of het bestand artikelnummers bevat zoals <strong>Art. 2.5.3</strong> of <strong>Artikel 52</strong>.</div>';
-      if (teller) teller.textContent = '';
+    state.currentPage = 1;
+    state.filterQuery = '';
+    const z = $id('upload-zoek'); if(z) z.value='';
+
+    if (!artikelen.length) {
+      const c=$id('upload-resultaten');
+      if(c) c.innerHTML='<div class="upload-leeg">Geen artikelen gevonden.<br>Controleer of het bestand artikelnummers bevat zoals <strong>Art. 2.5.3</strong> of <strong>Artikel 1.1.1</strong>.</div>';
+      const t=$id('upload-teller'); if(t) t.textContent='';
+      const p=$id('upload-paginering'); if(p) p.innerHTML='';
+      const s=$id('upload-stats'); if(s) s.innerHTML='';
       return;
     }
-    if (teller) teller.textContent = artikelen.length + ' artikel' + (artikelen.length !== 1 ? 'en' : '') + ' gevonden';
-    if (container) {
-      container.innerHTML = artikelen.map(function(art) {
-        const inhoud  = (art.inhoud || '').trim();
-        const preview = inhoud.length > 300 ? inhoud.substring(0,300).trim() + '\u2026' : inhoud;
-        return '<div class="upload-artikel">'
-          + '<div class="upload-artikel-kop">'
-            + '<span class="upload-artikel-nr">Art. ' + e(art.artikel) + '</span>'
-            + (art.titel ? '<span class="upload-artikel-titel">' + e(art.titel) + '</span>' : '')
-          + '</div>'
-          + (preview ? '<div class="upload-artikel-preview">' + e(preview) + '</div>' : '')
-        + '</div>';
-      }).join('');
-    }
+
     $id('btn-download')?.removeAttribute('disabled');
+    toonStats(artikelen);
+    toonPagina();
   }
 
-  function leesAlsTekst(bestand) {
-    return new Promise(function(res, rej) {
-      var r = new FileReader();
-      r.onload  = function(ev) { res(ev.target.result); };
-      r.onerror = function()   { rej(new Error('Bestand kon niet worden gelezen.')); };
-      r.readAsText(bestand, 'UTF-8');
+  // ── Bestanden lezen ──────────────────────────────────────────────────
+  function leesAlsTekst(f) {
+    return new Promise(function(res,rej) {
+      var r=new FileReader();
+      r.onload=function(ev){res(ev.target.result);};
+      r.onerror=function(){rej(new Error('Kan bestand niet lezen.'));};
+      r.readAsText(f,'UTF-8');
     });
   }
 
-  function leesAlsPDF(bestand) {
-    return new Promise(function(res, rej) {
-      if (typeof pdfjsLib === 'undefined') { rej(new Error('PDF.js niet geladen.')); return; }
-      var r = new FileReader();
-      r.onload = function(ev) {
-        pdfjsLib.getDocument({data: new Uint8Array(ev.target.result)}).promise.then(function(pdf) {
-          var tekst = ''; var paginas = [];
-          for (var p = 1; p <= pdf.numPages; p++) paginas.push(p);
-          return paginas.reduce(function(chain, p) {
-            return chain.then(function() {
-              return pdf.getPage(p).then(function(pg) {
-                return pg.getTextContent().then(function(ct) {
-                  tekst += ct.items.map(function(i) { return i.str; }).join(' ') + '\n';
+  function leesAlsPDF(f) {
+    return new Promise(function(res,rej) {
+      if(typeof pdfjsLib==='undefined'){rej(new Error('PDF.js niet geladen.'));return;}
+      var r=new FileReader();
+      r.onload=function(ev) {
+        pdfjsLib.getDocument({data:new Uint8Array(ev.target.result)}).promise.then(function(pdf) {
+          var tekst='', ps=[];
+          for(var p2=1;p2<=pdf.numPages;p2++) ps.push(p2);
+          return ps.reduce(function(ch,p2) {
+            return ch.then(function(){
+              return pdf.getPage(p2).then(function(pg){
+                return pg.getTextContent().then(function(ct){
+                  tekst+=ct.items.map(function(i){return i.str;}).join(' ')+'
+';
                 });
               });
             });
-          }, Promise.resolve()).then(function() { res(tekst); });
-        }).catch(function(err) { rej(new Error('PDF fout: ' + err.message)); });
+          },Promise.resolve()).then(function(){res(tekst);});
+        }).catch(function(err){rej(new Error('PDF: '+err.message));});
       };
-      r.onerror = function() { rej(new Error('PDF laden mislukt.')); };
-      r.readAsArrayBuffer(bestand);
+      r.onerror=function(){rej(new Error('PDF laden mislukt.'));};
+      r.readAsArrayBuffer(f);
     });
   }
 
-  function leesAlsDOCX(bestand) {
-    return new Promise(function(res, rej) {
-      if (typeof mammoth === 'undefined') { rej(new Error('Mammoth.js niet geladen.')); return; }
-      var r = new FileReader();
-      r.onload = function(ev) {
-        mammoth.extractRawText({arrayBuffer: ev.target.result})
-          .then(function(result) { res(result.value); })
-          .catch(function(err)   { rej(new Error('DOCX fout: ' + err.message)); });
+  function leesAlsDOCX(f) {
+    return new Promise(function(res,rej) {
+      if(typeof mammoth==='undefined'){rej(new Error('Mammoth.js niet geladen.'));return;}
+      var r=new FileReader();
+      r.onload=function(ev){
+        mammoth.extractRawText({arrayBuffer:ev.target.result})
+          .then(function(result){res(result.value);})
+          .catch(function(err){rej(new Error('DOCX: '+err.message));});
       };
-      r.onerror = function() { rej(new Error('DOCX laden mislukt.')); };
-      r.readAsArrayBuffer(bestand);
+      r.onerror=function(){rej(new Error('DOCX laden mislukt.'));};
+      r.readAsArrayBuffer(f);
     });
   }
 
-  function leesBestand(bestand) {
-    var ext = bestand.name.split('.').pop().toLowerCase();
-    if (ext === 'txt' || ext === 'md') return leesAlsTekst(bestand);
-    if (ext === 'pdf')                 return leesAlsPDF(bestand);
-    if (ext === 'docx')                return leesAlsDOCX(bestand);
-    return Promise.reject(new Error('Bestandstype .' + ext + ' niet ondersteund.'));
+  function leesBestand(f) {
+    var ext=f.name.split('.').pop().toLowerCase();
+    if(ext==='txt'||ext==='md') return leesAlsTekst(f);
+    if(ext==='pdf')             return leesAlsPDF(f);
+    if(ext==='docx')            return leesAlsDOCX(f);
+    return Promise.reject(new Error('Bestandstype .'+ext+' niet ondersteund.'));
   }
 
+  // ── Bestand verwerken ────────────────────────────────────────────────
   function verwerkBestand(bestand) {
-    if (!bestand) return;
-    var ext = bestand.name.split('.').pop().toLowerCase();
-    if (!['txt','md','pdf','docx'].includes(ext)) {
-      setStatus('Bestandstype .' + ext + ' is niet toegestaan.','fout'); return;
+    if(!bestand) return;
+    var ext=bestand.name.split('.').pop().toLowerCase();
+    if(!['txt','md','pdf','docx'].includes(ext)){
+      setStatus('Bestandstype .'+ext+' niet toegestaan.','fout'); return;
     }
     resetState(); resetUI();
-    state.currentFile   = bestand;
-    state.currentSource = 'upload';
-    state.loadedItems   = [{ naam: bestand.name, type: ext.toUpperCase(), bron: 'upload', status: 'geladen' }];
+    state.currentFile=bestand; state.currentSource='upload';
+    state.loadedItems=[{naam:bestand.name,type:ext.toUpperCase(),bron:'upload',status:'geladen'}];
     updateBestandenlijst();
     $id('btn-analyseer')?.removeAttribute('disabled');
-    setStatus('Gekozen: ' + bestand.name + ' (' + ext.toUpperCase() + ', ' + (bestand.size/1024).toFixed(1) + ' KB) \u2014 klik op "Analyseer bestand".','info');
-    console.log('[Upload] Bestand opgeslagen:', bestand.name);
+    setStatus('Gekozen: '+bestand.name+' ('+ext.toUpperCase()+', '+(bestand.size/1024).toFixed(1)+' KB) — klik op "Analyseer bestand".','info');
+    console.log('[Upload] Bestand geladen:', bestand.name);
   }
 
-  function onBestandGekozen(event) {
-    var bestand = event.target.files[0];
-    if (!bestand) return;
-    console.log('[Upload] Gekozen via input:', bestand.name);
-    verwerkBestand(bestand);
+  function onBestandGekozen(ev) {
+    var b=ev.target.files[0]; if(!b) return;
+    console.log('[Upload] Gekozen via input:',b.name); verwerkBestand(b);
   }
-
-  function onDrop(event) {
-    event.preventDefault(); event.stopPropagation();
+  function onDrop(ev) {
+    ev.preventDefault(); ev.stopPropagation();
     $id('upload-zone')?.classList.remove('drag-over');
-    var bestand = event.dataTransfer && event.dataTransfer.files[0];
-    if (!bestand) return;
-    console.log('[Upload] Gekozen via drop:', bestand.name);
-    verwerkBestand(bestand);
+    var b=ev.dataTransfer&&ev.dataTransfer.files[0]; if(!b) return;
+    console.log('[Upload] Gekozen via drop:',b.name); verwerkBestand(b);
   }
-
-  function onDragOver(event) { event.preventDefault(); $id('upload-zone')?.classList.add('drag-over'); }
-  function onDragLeave()     { $id('upload-zone')?.classList.remove('drag-over'); }
+  function onDragOver(ev){ev.preventDefault();$id('upload-zone')?.classList.add('drag-over');}
+  function onDragLeave(){$id('upload-zone')?.classList.remove('drag-over');}
 
   function onAnalyseer() {
-    if (!state.currentFile) { setStatus('Geen bestand gekozen.','fout'); return; }
-    console.log('[Upload] Analyse gestart:', state.currentFile.name);
+    if(!state.currentFile){setStatus('Geen bestand gekozen.','fout');return;}
+    console.log('[Upload] Analyse gestart:',state.currentFile.name);
     toonLader(true);
-    setStatus('Bestand wordt ingelezen\u2026','info');
-    state.parsedArticles = []; state.jsonData = null;
-    var res = $id('upload-resultaten'); if (res) res.innerHTML = '';
-    var tel = $id('upload-teller');     if (tel) tel.textContent = '';
+    setStatus('Bestand wordt ingelezen…','info');
+    state.parsedArticles=[]; state.jsonData=null;
+    var r=$id('upload-resultaten'); if(r) r.innerHTML='';
+    var t=$id('upload-teller'); if(t) t.textContent='';
+    var p=$id('upload-paginering'); if(p) p.innerHTML='';
+    var s=$id('upload-stats'); if(s) s.innerHTML='';
     $id('btn-download')?.setAttribute('disabled','true');
 
     leesBestand(state.currentFile).then(function(tekst) {
-      if (!tekst || !tekst.trim()) {
+      if(!tekst||!tekst.trim()){
         setStatus('Bestand is leeg.','waarschuwing');
-        if (state.loadedItems[0]) state.loadedItems[0].status = 'fout';
+        if(state.loadedItems[0]) state.loadedItems[0].status='fout';
         updateBestandenlijst(); return;
       }
-      console.log('[Upload] Tekst ingelezen | lengte:', tekst.length);
-      setStatus('Artikelen worden herkend\u2026','info');
-      var artikelen = WvSvParser.parseerArtikelen(tekst);
+      console.log('[Upload] Tekst ingelezen | tekens:',tekst.length);
+      setStatus('Artikelen worden herkend…','info');
+      var artikelen=WvSvParser.parseerArtikelen(tekst);
       toonResultaten(artikelen);
-      if (state.loadedItems[0]) state.loadedItems[0].status = artikelen.length > 0 ? 'geanalyseerd' : 'fout';
+      if(state.loadedItems[0]) state.loadedItems[0].status=artikelen.length>0?'geanalyseerd':'fout';
       updateBestandenlijst();
       setStatus(
-        artikelen.length > 0
-          ? 'Klaar \u2014 ' + artikelen.length + ' artikel' + (artikelen.length!==1?'en':'') + ' gevonden in ' + state.currentFile.name + '.'
-          : 'Geen artikelen herkend in ' + state.currentFile.name + '.',
-        artikelen.length > 0 ? 'succes' : 'waarschuwing'
+        artikelen.length>0
+          ?'Klaar — '+artikelen.length+' artikel'+(artikelen.length!==1?'en':'')+' gevonden in '+state.currentFile.name+'.'
+          :'Geen artikelen herkend in '+state.currentFile.name+'.',
+        artikelen.length>0?'succes':'waarschuwing'
       );
-      console.log('[Upload] Klaar | artikelen:', artikelen.length);
-    }).catch(function(err) {
-      setStatus('Fout bij inlezen: ' + err.message,'fout');
-      if (state.loadedItems[0]) state.loadedItems[0].status = 'fout';
+      console.log('[Upload] Klaar | artikelen:',artikelen.length);
+    }).catch(function(err){
+      setStatus('Fout: '+err.message,'fout');
+      if(state.loadedItems[0]) state.loadedItems[0].status='fout';
       updateBestandenlijst();
-      console.error('[Upload] Fout:', err);
-    }).finally(function() { toonLader(false); });
+      console.error('[Upload] Fout:',err);
+    }).finally(function(){toonLader(false);});
   }
 
   function onTestData() {
     console.log('[Upload] Testdata laden...');
     resetState(); resetUI();
-    state.currentSource = 'testdata';
-    state.loadedItems   = [{ naam: 'testdata.txt', type: 'TXT', bron: 'testdata', status: 'geladen' }];
+    state.currentSource='testdata';
+    state.loadedItems=[{naam:'testdata.txt',type:'TXT',bron:'testdata',status:'geladen'}];
     updateBestandenlijst();
-    setStatus('Testdata wordt geladen\u2026','info');
-    var artikelen = WvSvParser.parseerArtikelen(WvSvParser.TESTDATA);
+    setStatus('Testdata laden…','info');
+    var artikelen=WvSvParser.parseerArtikelen(WvSvParser.TESTDATA);
     toonResultaten(artikelen);
-    if (state.loadedItems[0]) state.loadedItems[0].status = 'geanalyseerd';
+    if(state.loadedItems[0]) state.loadedItems[0].status='geanalyseerd';
     updateBestandenlijst();
-    setStatus('Testdata \u2014 ' + artikelen.length + ' voorbeeldartikelen geladen.','succes');
-    console.log('[Upload] Testdata geladen | artikelen:', artikelen.length);
+    setStatus('Testdata — '+artikelen.length+' artikelen geladen.','succes');
+    console.log('[Upload] Testdata | artikelen:',artikelen.length);
   }
 
   function onDownload() {
-    if (!state.jsonData) return;
-    var blob = new Blob([state.jsonData], {type:'application/json'});
-    var url  = URL.createObjectURL(blob);
-    var a    = document.createElement('a');
-    a.href = url; a.download = 'artikelen.json'; a.click();
+    if(!state.jsonData) return;
+    var blob=new Blob([state.jsonData],{type:'application/json'});
+    var url=URL.createObjectURL(blob);
+    var a=document.createElement('a');
+    a.href=url; a.download='artikelen.json'; a.click();
     URL.revokeObjectURL(url);
-    console.log('[Upload] JSON gedownload | artikelen:', state.parsedArticles.length);
+    console.log('[Upload] JSON gedownload | artikelen:',state.parsedArticles.length);
+  }
+
+  function onZoek(ev) {
+    state.filterQuery=ev.target.value;
+    state.currentPage=1;
+    toonPagina();
   }
 
   function verwijderItem(idx) {
-    var item = state.loadedItems[idx]; if (!item) return;
-    console.log('[Upload] Verwijderd:', item.naam);
-    state.loadedItems.splice(idx, 1);
-    if (state.loadedItems.length === 0) { volledigeReset(); setStatus('Bestand verwijderd.','info'); }
+    var item=state.loadedItems[idx]; if(!item) return;
+    console.log('[Upload] Verwijderd:',item.naam);
+    state.loadedItems.splice(idx,1);
+    if(!state.loadedItems.length){volledigeReset();setStatus('Bestand verwijderd.','info');}
     else updateBestandenlijst();
   }
-
   function verwijderTestdata() {
-    if (state.currentSource !== 'testdata') return;
+    if(state.currentSource!=='testdata') return;
     console.log('[Upload] Testdata verwijderd.');
     volledigeReset(); setStatus('Testdata verwijderd.','info');
   }
-
-  function allesWissen() { volledigeReset(); console.log('[Upload] Alles gewist.'); }
+  function allesWissen(){volledigeReset();console.log('[Upload] Alles gewist.');}
 
   function init() {
-    $id('upload-bestand')?.addEventListener('change', onBestandGekozen);
-    var zone = $id('upload-zone');
-    if (zone) {
-      zone.addEventListener('dragover',  onDragOver);
-      zone.addEventListener('dragleave', onDragLeave);
-      zone.addEventListener('drop',      onDrop);
+    $id('upload-bestand')?.addEventListener('change',onBestandGekozen);
+    var zone=$id('upload-zone');
+    if(zone){
+      zone.addEventListener('dragover',onDragOver);
+      zone.addEventListener('dragleave',onDragLeave);
+      zone.addEventListener('drop',onDrop);
     }
-    $id('btn-analyseer')?.addEventListener('click',    onAnalyseer);
-    $id('btn-testdata')?.addEventListener('click',     onTestData);
-    $id('btn-download')?.addEventListener('click',     onDownload);
-    $id('btn-alles-wissen')?.addEventListener('click', allesWissen);
-    if (typeof pdfjsLib !== 'undefined') {
-      pdfjsLib.GlobalWorkerOptions.workerSrc =
+    $id('btn-analyseer')?.addEventListener('click',onAnalyseer);
+    $id('btn-testdata')?.addEventListener('click',onTestData);
+    $id('btn-download')?.addEventListener('click',onDownload);
+    $id('btn-alles-wissen')?.addEventListener('click',allesWissen);
+    $id('upload-zoek')?.addEventListener('input',onZoek);
+    if(typeof pdfjsLib!=='undefined'){
+      pdfjsLib.GlobalWorkerOptions.workerSrc=
         'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
     }
-    console.log('[Upload] Module v5 geinitialiseerd.');
+    console.log('[Upload] Module v6 geinitialiseerd.');
   }
 
-  return { init, onTestData, verwijderItem, verwijderTestdata, allesWissen };
+  return {init,onTestData,verwijderItem,verwijderTestdata,allesWissen,naarPagina};
 })();
 
-document.addEventListener('DOMContentLoaded', function() { WvSvUpload.init(); });
+document.addEventListener('DOMContentLoaded',function(){WvSvUpload.init();});
