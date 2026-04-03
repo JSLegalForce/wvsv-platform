@@ -153,13 +153,35 @@ const WvSvUpload = (() => {
     if (res) res.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
+  function _getArtikelenVoorTitel(titelNr) {
+    if (!state.structuurData || !state.structuurData.boeken) return null;
+    for (var i=0; i<state.structuurData.boeken.length; i++) {
+      var boek = state.structuurData.boeken[i];
+      for (var j=0; j<boek.hoofdstukken.length; j++) {
+        var hfst = boek.hoofdstukken[j];
+        for (var k=0; k<hfst.titels.length; k++) {
+          if (hfst.titels[k].nummer === titelNr) return hfst.titels[k].artikelen;
+        }
+      }
+    }
+    return null;
+  }
+
   function gefilterd() {
     var lijst = state.parsedArticles;
     if (state.activeTitelNr) {
-      lijst = lijst.filter(function(a) {
-        var d = a.artikel.split('.');
-        return d.length >= 3 && d[0]+'.'+d[1] === state.activeTitelNr;
-      });
+      var titelArtikelen = _getArtikelenVoorTitel(state.activeTitelNr);
+      if (titelArtikelen && titelArtikelen.length > 0) {
+        var titelSet = {};
+        titelArtikelen.forEach(function(nr) { titelSet[nr] = true; });
+        lijst = lijst.filter(function(a) { return titelSet[a.artikel]; });
+      } else {
+        // Fallback: patroonmatch op d[1]+'.'+d[2] === titelNr
+        lijst = lijst.filter(function(a) {
+          var d = a.artikel.split('.');
+          return d.length >= 3 && d[1]+'.'+d[2] === state.activeTitelNr;
+        });
+      }
     } else if (state.activeBoek) {
       lijst = lijst.filter(function(a) { return (a.artikel.split('.')[0]) === state.activeBoek; });
     }
