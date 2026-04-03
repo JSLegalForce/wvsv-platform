@@ -1,41 +1,86 @@
-/** parser.js v6 - fix Art. 2.5.4 correct tekst */
+/** parser.js v7 - robuust voor PDF-tekst zonder regeleindes */
 const WvSvParser = (() => {
-  const KOP_REGEX = /^(Art(?:ikel)?\.?)\s+(\d[\d.]*[a-z]?)(?:\s*[.:]\s*|\s+|$)(.*)/i;
+  const REGEL_REGEX = /^\s*(Art(?:ikel)?\.?)\s+(\d+\.\d+(?:\.\d+)*)\s*\.?\s*(.*)/i;
+
   function isKop(regel) {
-    const m = KOP_REGEX.exec(regel.trim());
+    const m = REGEL_REGEX.exec(regel.trim());
     if (!m) return null;
+    // Voorkom vals positief: "Artikelen" matcht niet want \d volgt direct
     return { nummer: m[2].trim(), titel: m[3].trim() };
   }
+
+  function normaliseer(tekst) {
+    return tekst
+      .replace(/\r\n/g, '\n')
+      .replace(/\r/g, '\n')
+      // Meerdere spaties op 1 regel -> 1 spatie
+      .replace(/[^\S\n]+/g, ' ')
+      // Zet "Artikel X.X.X" altijd op eigen regel
+      .replace(/(?<!\n)(Art(?:ikel)?\.?\s+\d+\.\d)/g, '\nArt')
+      .replace(/(?<!\n)(Artikel\s+\d+\.\d)/g, '\nArtikel')
+      .trim();
+  }
+
   function parseerArtikelen(tekst) {
     const artikelen = [];
-    if (!tekst || !tekst.trim()) { console.warn('[Parser] Lege invoer.'); return artikelen; }
-    const regels = tekst.replace(/\r\n/g,'\n').replace(/\r/g,'\n').split('\n');
-    console.log('[Parser] Start | regels:', regels.length);
+    if (!tekst || !tekst.trim()) return artikelen;
+
+    const genormaliseerd = normaliseer(tekst);
+    const regels = genormaliseerd.split('\n');
+    const debugMatches = [];
     let huidig = null, buffer = [];
+
     function opslaan() {
       if (!huidig) return;
       artikelen.push({ artikel: huidig.nummer, titel: huidig.titel, inhoud: buffer.join('\n').trim() });
       buffer = []; huidig = null;
     }
+
     for (let i = 0; i < regels.length; i++) {
       const kop = isKop(regels[i]);
-      if (kop) { opslaan(); huidig = { nummer: kop.nummer, titel: kop.titel }; }
-      else if (huidig) { buffer.push(regels[i]); }
+      if (kop) {
+        opslaan();
+        huidig = { nummer: kop.nummer, titel: kop.titel };
+        if (debugMatches.length < 10) debugMatches.push('Art. ' + kop.nummer + (kop.titel ? ' — ' + kop.titel : ''));
+      } else if (huidig) {
+        buffer.push(regels[i]);
+      }
     }
     opslaan();
-    console.log('[Parser] Klaar | gevonden:', artikelen.length);
+
+    _toonParserDebug(debugMatches, artikelen.length, regels.length);
     return artikelen;
   }
+
+  function _toonParserDebug(matches, totaal, aantalRegels) {
+    const blok = document.getElementById('debug-log');
+    if (!blok) return;
+    const tijd = new Date().toLocaleTimeString('nl-NL', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    const voeg = (tekst, rood) => {
+      const d = document.createElement('div');
+      d.style.cssText = 'padding:1px 0;border-bottom:1px solid #2a2a4a;' + (rood ? 'color:#ff6b6b;font-weight:bold;' : '');
+      d.textContent = '[' + tijd + '] [Parser] ' + tekst;
+      blok.appendChild(d); blok.scrollTop = blok.scrollHeight;
+    };
+    voeg('Regels na normalisatie: ' + aantalRegels);
+    voeg('Artikelen gevonden: ' + totaal);
+    if (matches.length > 0) {
+      voeg('Eerste ' + matches.length + ' koppen gevonden:');
+      matches.forEach(m => voeg('  ' + m));
+    } else {
+      voeg('FOUT: geen artikelkoppen herkend', true);
+      voeg('Verwacht patroon: "Artikel 2.5.4" of "Art. 2.5.4"', true);
+    }
+  }
+
   const TESTDATA = `Art. 2.5.1 Opsporingsbevoegdheden algemeen
 1. De opsporingsambtenaar is bevoegd alle handelingen te verrichten die redelijkerwijs nodig zijn voor de vervulling van zijn taak.
 2. Bij de uitoefening van zijn bevoegdheden houdt hij rekening met de grondrechten van de betrokkenen.
-3. Van elke ingrijpende handeling wordt een schriftelijk verslag opgemaakt.
 Art. 2.5.2 Legitimatieplicht opsporingsambtenaar
-1. De opsporingsambtenaar is verplicht zich op eerste verzoek te legitimeren met een dienstpas waarop naam, rang en dienstaanduiding zijn vermeld.
-2. In spoedeisende gevallen kan legitimatie plaatsvinden direct na de handeling.
+1. De opsporingsambtenaar is verplicht zich op eerste verzoek te legitimeren.
 Art. 2.5.3 Staandehouding verdachten en getuigen
-1. Iedere opsporingsambtenaar kan de verdachte staande houden om zijn identiteit vast te stellen op de wijze, bedoeld in artikel 1.4.8, eerste lid. Hij onderzoekt tevens een identiteitsbewijs als bedoeld in artikel 1 van de Wet op de identificatieplicht.
-2. Iedere opsporingsambtenaar kan de getuige staande houden om zijn identiteit vast te stellen op de wijze, bedoeld in artikel 1.6.1.
+1. Iedere opsporingsambtenaar kan de verdachte staande houden om zijn identiteit vast te stellen.
+2. Iedere opsporingsambtenaar kan de getuige staande houden.
 3. De staandehouding duurt zo kort als mogelijk is.
 Art. 2.5.4 [aanhouding bij heterdaad]
 1. In geval van ontdekking op heterdaad van een strafbaar feit kan ieder de verdachte aanhouden.
@@ -43,17 +88,14 @@ Art. 2.5.4 [aanhouding bij heterdaad]
 3. Vindt de aanhouding plaats door een ander dan een opsporingsambtenaar, dan levert deze de aangehoudene onverwijld over aan een opsporingsambtenaar.
 Art. 2.5.5 Recht op mededeling
 1. De verdachte heeft het recht dat hem zo spoedig mogelijk wordt meegedeeld ter zake van welk strafbaar feit hij als verdachte wordt aangemerkt.
-2. Dit recht geldt zowel bij staandehouding als bij aanhouding.
-3. De mededeling geschiedt in een taal die de verdachte begrijpt of redelijkerwijze geacht wordt te begrijpen.
 Art. 2.5.6 Aanhouding buiten heterdaad
 1. In geval van verdenking van een misdrijf waarvoor voorlopige hechtenis is toegelaten, is de officier van justitie bevoegd de verdachte te doen aanhouden.
-2. De hulpofficier van justitie heeft dezelfde bevoegdheid bij dringende noodzaak als onverwijlde aanhouding vereist is.
-3. Van de aanhouding wordt onverwijld proces-verbaal opgemaakt.
 Art. 2.5.7 Voorgeleiding en inverzekeringstelling
-1. De aangehouden verdachte wordt zo spoedig mogelijk voorgeleid aan de officier van justitie of de hulpofficier van justitie.
-2. De officier van justitie kan de verdachte in verzekering stellen indien het belang van het onderzoek dit vordert.
-3. De inverzekeringstelling duurt ten hoogste drie dagen en kan eenmaal worden verlengd met ten hoogste drie dagen.
-4. De verdachte wordt onverwijld in kennis gesteld van zijn recht op bijstand van een raadsman en van zijn zwijgrecht.`;
+1. De aangehouden verdachte wordt zo spoedig mogelijk voorgeleid aan de officier van justitie.
+2. De officier van justitie kan de verdachte in verzekering stellen.
+3. De inverzekeringstelling duurt ten hoogste drie dagen.
+4. De verdachte wordt onverwijld in kennis gesteld van zijn recht op bijstand van een raadsman.`;
+
   return { parseerArtikelen, isKop, TESTDATA };
 })();
 if (typeof module !== 'undefined') module.exports = WvSvParser;
