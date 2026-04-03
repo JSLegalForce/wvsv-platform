@@ -1,4 +1,4 @@
-/** upload.js v13 - FASE 1: structuurgedreven parser WvSv — structuurboom first */
+/** upload.js v13 - FASE 1: structuurgedreven parser WvSv - structuurboom first */
 const WvSvUpload = (() => {
   const state = {
     currentFile: null, currentSource: null,
@@ -72,10 +72,7 @@ const WvSvUpload = (() => {
     }).join('');
   }
 
-  // ── STRUCTUURBOOM (FASE 1 kern) ──────────────────────────────────────────
-
   function toonStructuurBoom(structuur) {
-    // Zorg dat het structuur-element bestaat
     var el = $id('upload-structuur');
     if (!el) {
       el = document.createElement('div');
@@ -86,14 +83,13 @@ const WvSvUpload = (() => {
     }
 
     if (!structuur || !structuur.boeken || !structuur.boeken.length) {
-      el.innerHTML = '<div style="color:#888;font-size:0.85rem;padding:8px 0;">Geen structuurkoppen gevonden in dit bestand.<br><small>Controleer of het bestand de WvSv-indeling (Boek/Hoofdstuk/Titel/Artikel) bevat.</small></div>';
+      el.innerHTML = '<div style="color:#888;font-size:0.85rem;padding:8px 0;">Geen structuurkoppen gevonden in dit bestand.<br><small>Controleer of het bestand de WvSv-indeling bevat.</small></div>';
       return;
     }
 
     var totHfst  = structuur.boeken.reduce(function(s,b){return s+b.hoofdstukken.length;},0);
     var totTitel = structuur.boeken.reduce(function(s,b){return s+b.hoofdstukken.reduce(function(s2,h){return s2+h.titels.length;},0);},0);
 
-    // ── debug stats boven boom ──
     var html = '<div style="font-weight:700;font-size:0.85rem;margin-bottom:10px;color:var(--blauw);">'
       + '&#9776; STRUCTUUR: ' + structuur.boeken.length + ' boeken &middot; ' + totHfst + ' hoofdstukken &middot; ' + totTitel + ' titels'
       + '</div>';
@@ -119,9 +115,8 @@ const WvSvUpload = (() => {
         html += '<div class="boom-inhoud" style="margin-left:12px;border-left:2px solid #dde3f0;padding-left:8px;">';
         hfst.titels.forEach(function(titel) {
           var nrArt = titel.artikelen.length;
-          html += '<div style="cursor:pointer;padding:2px 6px;color:var(--blauw);text-decoration:underline;font-size:0.8rem;border-radius:4px;transition:background 0.1s;" '
-            + 'onmouseover="this.style.background='#eef1f9'" onmouseout="this.style.background=''" '
-            + 'onclick="WvSvUpload.laadTitel('' + e(titel.nummer) + '')">';
+          var tNr = titel.nummer.replace(/'/g, '');
+          html += '<div class="boom-titel-link" style="cursor:pointer;padding:2px 6px;color:var(--blauw);text-decoration:underline;font-size:0.8rem;" onclick="WvSvUpload.laadTitel(' + "'" + tNr + "'" + ')">';
           html += '&#9654; Titel ' + e(titel.nummer) + ' &mdash; ' + e(titel.titel);
           html += ' <span style="color:#888;text-decoration:none;font-size:0.75rem;">(' + nrArt + ' art.)</span></div>';
         });
@@ -143,8 +138,6 @@ const WvSvUpload = (() => {
     el.innerHTML = el.innerHTML.replace(gesloten ? '&#9658;' : '&#9660;', gesloten ? '&#9660;' : '&#9658;');
   }
 
-  // ── ARTIKELEN LADEN BIJ TITELKLIK ─────────────────────────────────────────
-
   function laadTitel(titelNr) {
     if (!state.parsedArticles || !state.parsedArticles.length) {
       logDebug('Nog geen artikelen. Upload en analyseer eerst.', true);
@@ -156,8 +149,6 @@ const WvSvUpload = (() => {
     state.activeBoek = null;
     var z = $id('upload-zoek'); if(z) z.value='';
     toonPagina();
-
-    // Scroll naar resultaten
     var res = $id('upload-resultaten');
     if (res) res.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
@@ -195,7 +186,7 @@ const WvSvUpload = (() => {
     if(container) {
       if(!deel.length) {
         container.innerHTML = state.activeTitelNr
-          ? '<div class="upload-leeg">Geen artikelen gevonden voor Titel '+e(state.activeTitelNr)+'.<br><small>Mogelijk zijn er geen artikel-koppen herkend in dit deel.</small></div>'
+          ? '<div class="upload-leeg">Geen artikelen gevonden voor Titel '+e(state.activeTitelNr)+'.</div>'
           : '<div class="upload-leeg">Kies een Titel uit de structuurboom hierboven om artikelen te laden.</div>';
       } else {
         container.innerHTML = deel.map(function(art) {
@@ -238,8 +229,6 @@ const WvSvUpload = (() => {
     toonPagina();
   }
 
-  // ── BESTAND VERWERKEN ─────────────────────────────────────────────────────
-
   function verwerkBestand(bestand) {
     if(!bestand) return;
     var ext=bestand.name.split('.').pop().toLowerCase();
@@ -249,7 +238,7 @@ const WvSvUpload = (() => {
     state.loadedItems=[{naam:bestand.name,type:ext.toUpperCase(),bron:'upload',status:'geladen'}];
     updateBestandenlijst();
     $id('btn-analyseer')?.removeAttribute('disabled');
-    setStatus('Gekozen: '+bestand.name+' ('+(bestand.size/1024).toFixed(1)+' KB) — klik op "Analyseer bestand".','info');
+    setStatus('Gekozen: '+bestand.name+' ('+(bestand.size/1024).toFixed(1)+' KB) - klik op Analyseer bestand.','info');
     logDebug('Bestand gekozen: '+bestand.name);
   }
 
@@ -262,19 +251,16 @@ const WvSvUpload = (() => {
   function leesAlsPDF(f){if(f.size===0)return Promise.reject(new Error('PDF heeft 0 bytes.'));if(typeof pdfjsLib==='undefined')return Promise.reject(new Error('PDF.js niet geladen.'));return new Promise(function(res,rej){var r=new FileReader();r.onload=function(ev){var data=new Uint8Array(ev.target.result);logDebug('PDF bytes: '+data.length);pdfjsLib.getDocument({data:data}).promise.then(function(pdf){logDebug('PDF paginas: '+pdf.numPages);var tekst='',ps=[];for(var p=1;p<=pdf.numPages;p++)ps.push(p);return ps.reduce(function(keten,p){return keten.then(function(){return pdf.getPage(p).then(function(pg){return pg.getTextContent().then(function(ct){var pt=ct.items.map(function(i){return i.str;}).join(' ');tekst+=pt+'\n';});});});},Promise.resolve()).then(function(){res(tekst);});}).catch(function(err){rej(new Error('PDF.js: '+err.message));});};r.onerror=function(){rej(new Error('FileReader fout bij PDF.'));};r.readAsArrayBuffer(f);});}
   function leesAlsDOCX(f){if(f.size===0)return Promise.reject(new Error('DOCX heeft 0 bytes.'));if(typeof mammoth==='undefined')return Promise.reject(new Error('Mammoth niet geladen.'));return new Promise(function(res,rej){var r=new FileReader();r.onload=function(ev){mammoth.extractRawText({arrayBuffer:ev.target.result}).then(function(result){res(result.value);}).catch(function(err){rej(new Error('DOCX: '+err.message));});};r.onerror=function(){rej(new Error('FileReader fout bij DOCX.'));};r.readAsArrayBuffer(f);});}
   function leesBestand(f){var ext=f.name.split('.').pop().toLowerCase();if(ext==='txt'||ext==='md')return leesAlsTekst(f);if(ext==='pdf')return leesAlsPDF(f);if(ext==='docx')return leesAlsDOCX(f);return Promise.reject(new Error('Bestandstype .'+ext+' niet ondersteund.'));}
-
   function normalizePdfText(raw){var t=raw;t=t.replace(/[\uFFFD\u25AA\u25A0\u2022\u00B7\u25CF]/g,' ');t=t.replace(new RegExp('(Artikel[\t ]+'+'[0-9]+(?:[.][0-9]+)+)','g'),' $1');t=t.replace(/ {3,}/g,' ');return t.trim();}
-
-  // ── HOOFDANALYSE ──────────────────────────────────────────────────────────
 
   function onAnalyseer() {
     if(!state.currentFile){setStatus('Geen bestand gekozen.','fout');return;}
     logDebug('--- Analyse gestart ---');
-    toonLader(true); setStatus('Bestand wordt ingelezen…','info');
+    toonLader(true); setStatus('Bestand wordt ingelezen...','info');
     state.parsedArticles=[]; state.jsonData=null; state.structuurData=null;
     ['upload-teller','upload-paginering','upload-structuur'].forEach(function(id){var el=$id(id);if(el)el.innerHTML='';});
     var rc=$id('upload-resultaten');
-    if(rc) rc.innerHTML='<div class="upload-leeg">Bezig met analyseren…</div>';
+    if(rc) rc.innerHTML='<div class="upload-leeg">Bezig met analyseren...</div>';
     $id('btn-download')?.setAttribute('disabled','true');
 
     leesBestand(state.currentFile).then(function(tekst){
@@ -283,7 +269,6 @@ const WvSvUpload = (() => {
       var ext2=state.currentFile.name.split('.').pop().toLowerCase();
       if(ext2==='pdf'){tekst=normalizePdfText(tekst);logDebug('Na normalisatie: '+tekst.length+' tekens');}
 
-      // ── STAP 1: Structuuranalyse (primair doel FASE 1) ──
       logDebug('Structuuranalyse...');
       var structuur = WvSvParser.parseerStructuur(tekst);
       state.structuurData = structuur;
@@ -292,40 +277,35 @@ const WvSvUpload = (() => {
       var totTitel  = structuur.boeken.reduce(function(s,b){return s+b.hoofdstukken.reduce(function(s2,h){return s2+h.titels.length;},0);},0);
       logDebug('Structuur: '+totBoeken+' boeken, '+totHfst+' hoofdstukken, '+totTitel+' titels');
 
-      // ── STAP 2: Toon structuurboom (FIRST) ──
       toonStructuurBoom(structuur);
 
-      // ── STAP 3: Artikel-parsing (achtergrond, voor JSON en zoekopdrachten) ──
-      logDebug('Artikelanalyse (achtergrond)...');
-      setStatus('Artikelen worden herkend…','info');
+      logDebug('Artikelanalyse...');
+      setStatus('Artikelen worden herkend...','info');
       var artikelen = WvSvParser.parseerArtikelen(tekst);
       logDebug('Artikelen: '+artikelen.length);
 
-      // Sla op voor JSON-download en titelnavigatie
       state.parsedArticles = artikelen;
       state.jsonData = JSON.stringify(artikelen, null, 2);
 
       if(artikelen.length>0) {
         $id('btn-download')?.removeAttribute('disabled');
         var teller=$id('upload-teller');
-        if(teller) teller.textContent = artikelen.length+' artikel'+(artikelen.length!==1?'en':'')+' geparsed — kies een Titel';
+        if(teller) teller.textContent = artikelen.length+' artikel'+(artikelen.length!==1?'en':'')+' geparsed - kies een Titel';
       }
 
-      // Resultaten container: toon instructie (NIET alle artikelen)
       var rr=$id('upload-resultaten');
       if(rr) rr.innerHTML='<div class="upload-leeg" style="padding:20px;text-align:left;">'
-        +'<strong style="color:var(--blauw);">&#9757; Klik op een Titel in de structuurboom hierboven</strong><br>'
-        +'<span style="font-size:0.83rem;color:var(--tekst-mid);">De structuurboom toont alle boeken, hoofdstukken en titels. '
-        +'Klik op een Titel om de bijbehorende artikelen te laden.</span>'
-        +(artikelen.length>0?'<br><br><span style="font-size:0.78rem;color:var(--zilver);">Totaal geparsed: '+artikelen.length+' artikelen beschikbaar.</span>':'')
+        +'<strong style="color:var(--blauw);">Klik op een Titel in de structuurboom hierboven</strong><br>'
+        +'<span style="font-size:0.83rem;color:var(--tekst-mid);">De structuurboom toont alle boeken, hoofdstukken en titels. Klik op een Titel om artikelen te laden.</span>'
+        +(artikelen.length>0?'<br><br><span style="font-size:0.78rem;color:var(--zilver);">Totaal geparsed: '+artikelen.length+' artikelen.</span>':'')
         +'</div>';
 
       if(state.loadedItems[0]) state.loadedItems[0].status=totBoeken>0||artikelen.length>0?'geanalyseerd':'fout';
       updateBestandenlijst();
 
       var msg = totBoeken>0
-        ? 'Klaar — '+totBoeken+' boeken, '+totHfst+' hoofdstukken, '+totTitel+' titels gevonden.'
-        : (artikelen.length>0 ? 'Klaar — '+artikelen.length+' artikelen gevonden (geen structuurkoppen).' : 'Geen structuur of artikelen herkend — zie debug-log.');
+        ? 'Klaar - '+totBoeken+' boeken, '+totHfst+' hoofdstukken, '+totTitel+' titels gevonden.'
+        : (artikelen.length>0 ? 'Klaar - '+artikelen.length+' artikelen gevonden (geen structuurkoppen).' : 'Geen structuur herkend - zie debug-log.');
       setStatus(msg, totBoeken>0||artikelen.length>0?'succes':'waarschuwing');
 
     }).catch(function(err){
@@ -336,8 +316,6 @@ const WvSvUpload = (() => {
     }).finally(function(){ toonLader(false); });
   }
 
-  // ── TESTDATA ─────────────────────────────────────────────────────────────
-
   function onTestData() {
     logDebug('--- Testdata geladen ---');
     resetState(); resetUI(); state.currentSource='testdata';
@@ -345,13 +323,10 @@ const WvSvUpload = (() => {
     updateBestandenlijst();
 
     var tekst = WvSvParser.TESTDATA;
-
-    // Structuuranalyse van testdata
     var structuur = WvSvParser.parseerStructuur(tekst);
     state.structuurData = structuur;
     toonStructuurBoom(structuur);
 
-    // Artikel-parsing voor testdata
     var artikelen = WvSvParser.parseerArtikelen(tekst);
     logDebug('Testdata: '+structuur.boeken.length+' boeken, '+artikelen.length+' artikelen');
 
@@ -361,20 +336,18 @@ const WvSvUpload = (() => {
     if(artikelen.length>0) $id('btn-download')?.removeAttribute('disabled');
 
     var teller=$id('upload-teller');
-    if(teller) teller.textContent = artikelen.length+' artikel'+(artikelen.length!==1?'en':'')+' in testdata — kies een Titel';
+    if(teller) teller.textContent = artikelen.length+' artikel'+(artikelen.length!==1?'en':'')+' in testdata - kies een Titel';
 
     var rr=$id('upload-resultaten');
     if(rr) rr.innerHTML='<div class="upload-leeg" style="padding:20px;text-align:left;">'
-      +'<strong style="color:var(--blauw);">&#9757; Klik op een Titel in de structuurboom hierboven</strong><br>'
+      +'<strong style="color:var(--blauw);">Klik op een Titel in de structuurboom hierboven</strong><br>'
       +'<span style="font-size:0.83rem;color:var(--tekst-mid);">Testdata geladen. Klik op Titel 5.1 of Titel 5.2 om artikelen te zien.</span>'
       +'</div>';
 
     if(state.loadedItems[0]) state.loadedItems[0].status='geanalyseerd';
     updateBestandenlijst();
-    setStatus('Testdata — '+structuur.boeken.length+' boeken, '+artikelen.length+' artikelen.','succes');
+    setStatus('Testdata - '+structuur.boeken.length+' boeken, '+artikelen.length+' artikelen.','succes');
   }
-
-  // ── DOWNLOAD & ZOEK ───────────────────────────────────────────────────────
 
   function onDownload() {
     if(!state.jsonData) return;
@@ -405,8 +378,6 @@ const WvSvUpload = (() => {
 
   function allesWissen() { volledigeReset(); }
 
-  // ── INIT ─────────────────────────────────────────────────────────────────
-
   function init() {
     $id('upload-bestand')?.addEventListener('change', onBestandGekozen);
     var zone=$id('upload-zone');
@@ -417,7 +388,7 @@ const WvSvUpload = (() => {
     $id('btn-alles-wissen')?.addEventListener('click', allesWissen);
     $id('upload-zoek')?.addEventListener('input', onZoek);
     if(typeof pdfjsLib!=='undefined') pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-    logDebug('v13 FASE1 klaar — PDF.js: '+(typeof pdfjsLib!=='undefined'?'OK':'ONTBREEKT')+' | Mammoth: '+(typeof mammoth!=='undefined'?'OK':'ONTBREEKT'));
+    logDebug('v13 FASE1 klaar - PDF.js: '+(typeof pdfjsLib!=='undefined'?'OK':'ONTBREEKT')+' | Mammoth: '+(typeof mammoth!=='undefined'?'OK':'ONTBREEKT'));
   }
 
   return { init, onTestData, verwijderItem, verwijderTestdata, allesWissen, naarPagina, filterBoek, toggleBoom, laadTitel };
