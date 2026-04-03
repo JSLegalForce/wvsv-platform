@@ -1,10 +1,29 @@
-/** upload.js v8 - volledige logging in analyseketen */
+/** upload.js v9 - debug log zichtbaar op pagina */
 const WvSvUpload = (() => {
   const state = {currentFile:null,currentSource:null,parsedArticles:[],loadedItems:[],jsonData:null,filterQuery:'',currentPage:1,pageSize:50,activeBoek:null};
   function e(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
   function $id(id){return document.getElementById(id);}
-  function log(){console.log('[Upload]',...arguments);}
-  function setStatus(t,type){const el=$id('upload-status');if(!el)return;el.textContent=t;el.className='upload-status upload-status--'+(type||'info');log('STATUS:',t);}
+
+  // ── Debug log zichtbaar op pagina ─────────────────────────────────
+  function logDebug(tekst, isError) {
+    let blok = $id('debug-log');
+    if (!blok) {
+      blok = document.createElement('div');
+      blok.id = 'debug-log';
+      blok.style.cssText = 'background:#1a1a2e;color:#e0e0e0;font-family:monospace;font-size:0.78rem;padding:12px 16px;border-radius:8px;margin:12px 0;max-height:300px;overflow-y:auto;white-space:pre-wrap;word-break:break-all;';
+      const uploadSection = $id('upload-status') || document.querySelector('.upload-sectie') || document.body;
+      uploadSection.parentNode.insertBefore(blok, uploadSection.nextSibling);
+    }
+    const regel = document.createElement('div');
+    regel.style.cssText = 'padding:1px 0;border-bottom:1px solid #2a2a4a;' + (isError ? 'color:#ff6b6b;font-weight:bold;' : '');
+    const tijd = new Date().toLocaleTimeString('nl-NL', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    regel.textContent = '[' + tijd + '] ' + tekst;
+    blok.appendChild(regel);
+    blok.scrollTop = blok.scrollHeight;
+    console.log('[Upload]', tekst);
+  }
+
+  function setStatus(t,type){const el=$id('upload-status');if(!el)return;el.textContent=t;el.className='upload-status upload-status--'+(type||'info');}
   function toonLader(aan){const el=$id('upload-lader');if(el)el.style.display=aan?'flex':'none';}
   function resetState(){state.currentFile=null;state.currentSource=null;state.parsedArticles=[];state.loadedItems=[];state.jsonData=null;state.filterQuery='';state.currentPage=1;state.activeBoek=null;}
   function resetUI(){
@@ -67,26 +86,41 @@ const WvSvUpload = (() => {
   function toonResultaten(artikelen){
     state.parsedArticles=artikelen;state.jsonData=JSON.stringify(artikelen,null,2);state.currentPage=1;state.filterQuery='';state.activeBoek=null;
     var z=$id('upload-zoek');if(z)z.value='';
-    if(!artikelen.length){var c=$id('upload-resultaten');if(c)c.innerHTML='<div class="upload-leeg">Geen artikelen gevonden.<br><small>Open de console (F12) om de ruwe tekst te zien en te controleren welk patroon er staat.</small></div>';['upload-teller','upload-paginering','upload-stats'].forEach(function(id){var el=$id(id);if(el)el.innerHTML='';});return;}
+    if(!artikelen.length){var c=$id('upload-resultaten');if(c)c.innerHTML='<div class="upload-leeg">Geen artikelen gevonden.<br><small>Zie het debug-log hieronder voor details.</small></div>';['upload-teller','upload-paginering','upload-stats'].forEach(function(id){var el=$id(id);if(el)el.innerHTML='';});return;}
     $id('btn-download')?.removeAttribute('disabled');toonStats(artikelen);toonPagina();
   }
+
+  // ── Bestanden lezen ───────────────────────────────────────────────
   function leesAlsTekst(f){
-    log('leesAlsTekst | naam:',f.name,'| grootte:',f.size,'bytes');
-    return new Promise(function(res,rej){var r=new FileReader();r.onload=function(ev){var t=ev.target.result;log('Tekst gelezen | tekens:',t.length,'| start:',t.substring(0,100));res(t);};r.onerror=function(){rej(new Error('Leesfout tekstbestand.'));};r.readAsText(f,'UTF-8');});
+    return new Promise(function(res,rej){
+      var r=new FileReader();
+      r.onload=function(ev){res(ev.target.result);};
+      r.onerror=function(){rej(new Error('FileReader fout bij tekstbestand.'));};
+      r.readAsText(f,'UTF-8');
+    });
   }
   function leesAlsPDF(f){
-    log('leesAlsPDF | naam:',f.name,'| grootte:',f.size,'bytes');
-    if(f.size===0)return Promise.reject(new Error('PDF is 0 bytes. Bestand niet correct geladen door de browser.'));
+    if(f.size===0)return Promise.reject(new Error('PDF heeft 0 bytes — bestand niet correct geladen.'));
     if(typeof pdfjsLib==='undefined')return Promise.reject(new Error('PDF.js niet geladen.'));
     return new Promise(function(res,rej){
       var r=new FileReader();
       r.onload=function(ev){
         var data=new Uint8Array(ev.target.result);
-        log('PDF bytes gelezen:',data.length);
+        logDebug('PDF bytes in geheugen: '+data.length);
         pdfjsLib.getDocument({data:data}).promise.then(function(pdf){
-          log('PDF geopend | paginas:',pdf.numPages);
-          var tekst='',ps=[];for(var p2=1;p2<=pdf.numPages;p2++)ps.push(p2);
-          return ps.reduce(function(ch,p2){return ch.then(function(){return pdf.getPage(p2).then(function(pg){return pg.getTextContent().then(function(ct){var pt=ct.items.map(function(i){return i.str;}).join(' ');log('Pagina',p2,'tekens:',pt.length);tekst+=pt+'\n';});});});},Promise.resolve()).then(function(){log('PDF klaar | totaal tekens:',tekst.length,'| start:',tekst.substring(0,200));res(tekst);});
+          logDebug('PDF geopend — paginas: '+pdf.numPages);
+          var tekst='',ps=[];
+          for(var p=1;p<=pdf.numPages;p++)ps.push(p);
+          return ps.reduce(function(keten,p){
+            return keten.then(function(){
+              return pdf.getPage(p).then(function(pg){
+                return pg.getTextContent().then(function(ct){
+                  var pt=ct.items.map(function(i){return i.str;}).join(' ');
+                  tekst+=pt+'\n';
+                });
+              });
+            });
+          },Promise.resolve()).then(function(){res(tekst);});
         }).catch(function(err){rej(new Error('PDF.js: '+err.message));});
       };
       r.onerror=function(){rej(new Error('FileReader fout bij PDF.'));};
@@ -94,63 +128,90 @@ const WvSvUpload = (() => {
     });
   }
   function leesAlsDOCX(f){
-    log('leesAlsDOCX | naam:',f.name,'| grootte:',f.size,'bytes');
-    if(f.size===0)return Promise.reject(new Error('DOCX is 0 bytes.'));
+    if(f.size===0)return Promise.reject(new Error('DOCX heeft 0 bytes.'));
     if(typeof mammoth==='undefined')return Promise.reject(new Error('Mammoth niet geladen.'));
-    return new Promise(function(res,rej){var r=new FileReader();r.onload=function(ev){mammoth.extractRawText({arrayBuffer:ev.target.result}).then(function(result){log('DOCX gelezen | tekens:',result.value.length);res(result.value);}).catch(function(err){rej(new Error('DOCX: '+err.message));});};r.onerror=function(){rej(new Error('FileReader fout bij DOCX.'));};r.readAsArrayBuffer(f);});
+    return new Promise(function(res,rej){
+      var r=new FileReader();
+      r.onload=function(ev){mammoth.extractRawText({arrayBuffer:ev.target.result}).then(function(result){res(result.value);}).catch(function(err){rej(new Error('DOCX: '+err.message));});};
+      r.onerror=function(){rej(new Error('FileReader fout bij DOCX.'));};
+      r.readAsArrayBuffer(f);
+    });
   }
   function leesBestand(f){
     var ext=f.name.split('.').pop().toLowerCase();
-    log('leesBestand | ext:',ext,'| grootte:',f.size,'bytes');
     if(ext==='txt'||ext==='md')return leesAlsTekst(f);
     if(ext==='pdf')return leesAlsPDF(f);
     if(ext==='docx')return leesAlsDOCX(f);
     return Promise.reject(new Error('Bestandstype .'+ext+' niet ondersteund.'));
   }
+
   function verwerkBestand(bestand){
     if(!bestand)return;
     var ext=bestand.name.split('.').pop().toLowerCase();
-    log('Bestand gekozen:',bestand.name,'| type:',ext,'| grootte:',bestand.size,'bytes');
-    if(!['txt','md','pdf','docx'].includes(ext)){setStatus('Bestandstype .'+ext+' niet toegestaan.','fout');return;}
-    resetState();resetUI();state.currentFile=bestand;state.currentSource='upload';
+    if(!['txt','md','pdf','docx'].includes(ext)){setStatus('Bestandstype niet toegestaan.','fout');return;}
+    resetState();resetUI();
+    state.currentFile=bestand;state.currentSource='upload';
     state.loadedItems=[{naam:bestand.name,type:ext.toUpperCase(),bron:'upload',status:'geladen'}];
     updateBestandenlijst();$id('btn-analyseer')?.removeAttribute('disabled');
     setStatus('Gekozen: '+bestand.name+' ('+(bestand.size/1024).toFixed(1)+' KB) — klik op "Analyseer bestand".','info');
+    logDebug('Bestand gekozen: '+bestand.name);
+    logDebug('Bestandstype: '+ext.toUpperCase());
+    logDebug('Bestandsgrootte: '+bestand.size+' bytes');
   }
-  function onBestandGekozen(ev){var b=ev.target.files[0];if(!b){log('Geen bestand in event');return;}log('onBestandGekozen:',b.name,'|',b.size,'bytes');verwerkBestand(b);}
-  function onDrop(ev){ev.preventDefault();ev.stopPropagation();$id('upload-zone')?.classList.remove('drag-over');var b=ev.dataTransfer&&ev.dataTransfer.files[0];if(!b)return;log('onDrop:',b.name,'|',b.size,'bytes');verwerkBestand(b);}
+  function onBestandGekozen(ev){var b=ev.target.files[0];if(!b)return;verwerkBestand(b);}
+  function onDrop(ev){ev.preventDefault();ev.stopPropagation();$id('upload-zone')?.classList.remove('drag-over');var b=ev.dataTransfer&&ev.dataTransfer.files[0];if(!b)return;verwerkBestand(b);}
   function onDragOver(ev){ev.preventDefault();$id('upload-zone')?.classList.add('drag-over');}
   function onDragLeave(){$id('upload-zone')?.classList.remove('drag-over');}
+
   function onAnalyseer(){
     if(!state.currentFile){setStatus('Geen bestand gekozen.','fout');return;}
-    log('=== ANALYSE GESTART | bestand:',state.currentFile.name,'| grootte:',state.currentFile.size,'bytes ===');
+    logDebug('--- Analyse gestart ---');
+    logDebug('Bestand: '+state.currentFile.name);
+    logDebug('Bestandsgrootte: '+state.currentFile.size+' bytes');
     toonLader(true);setStatus('Bestand wordt ingelezen…','info');
     state.parsedArticles=[];state.jsonData=null;
     ['upload-teller','upload-paginering','upload-stats'].forEach(function(id){var el=$id(id);if(el)el.innerHTML='';});
     $id('btn-download')?.setAttribute('disabled','true');
+    logDebug('Start lezen bestand...');
     leesBestand(state.currentFile).then(function(tekst){
-      log('Tekst ontvangen | lengte:',tekst.length,'tekens');
-      if(!tekst||!tekst.trim()){setStatus('Bestand is leeg of kon niet worden gelezen. Zie console (F12).','fout');if(state.loadedItems[0])state.loadedItems[0].status='fout';updateBestandenlijst();return;}
-      log('Parser aanroepen...');setStatus('Artikelen worden herkend…','info');
+      logDebug('Tekst succesvol gelezen');
+      logDebug('Aantal tekens tekst: '+tekst.length);
+      if(!tekst||!tekst.trim()){
+        logDebug('FOUT: tekst is leeg na lezen', true);
+        setStatus('Bestand is leeg.','fout');
+        if(state.loadedItems[0])state.loadedItems[0].status='fout';
+        updateBestandenlijst();return;
+      }
+      logDebug('Eerste 300 tekens: '+tekst.substring(0,300).replace(/\n/g,' | '));
+      logDebug('Parser gestart...');
+      setStatus('Artikelen worden herkend…','info');
       var artikelen=WvSvParser.parseerArtikelen(tekst);
-      log('Parser klaar | gevonden:',artikelen.length,'artikelen');
-      if(artikelen.length>0){log('Eerste artikel:',JSON.stringify(artikelen[0]));}
-      else{log('GEEN artikelen. Eerste 500 tekens ruwe tekst:',tekst.substring(0,500));log('Verwacht patroon: "Art. 1.2.3 Titel" of "Artikel 1.2.3 Titel"');}
+      logDebug('Aantal artikelen gevonden: '+artikelen.length);
+      if(artikelen.length>0){
+        logDebug('Eerste artikel: '+artikelen[0].artikel+' — '+artikelen[0].titel);
+      } else {
+        logDebug('FOUT: geen artikelen herkend. Controleer of patroon "Art. X.X.X" of "Artikel X.X.X" aanwezig is.', true);
+      }
       toonResultaten(artikelen);
       if(state.loadedItems[0])state.loadedItems[0].status=artikelen.length>0?'geanalyseerd':'fout';
       updateBestandenlijst();
-      setStatus(artikelen.length>0?'Klaar — '+artikelen.length+' artikel'+(artikelen.length!==1?'en':'')+' gevonden.':'Geen artikelen herkend. Zie console (F12) voor de ruwe tekst.',artikelen.length>0?'succes':'waarschuwing');
+      setStatus(artikelen.length>0?'Klaar — '+artikelen.length+' artikel'+(artikelen.length!==1?'en':'')+' gevonden.':'Geen artikelen herkend — zie debug-log.',artikelen.length>0?'succes':'waarschuwing');
+      logDebug('--- Analyse klaar ---');
     }).catch(function(err){
-      log('FOUT:',err.message);
+      logDebug('FOUT: '+err.message, true);
       setStatus('Fout: '+err.message,'fout');
-      if(state.loadedItems[0])state.loadedItems[0].status='fout';updateBestandenlijst();
-    }).finally(function(){toonLader(false);log('=== ANALYSE KLAAR ===');});
+      if(state.loadedItems[0])state.loadedItems[0].status='fout';
+      updateBestandenlijst();
+    }).finally(function(){toonLader(false);});
   }
+
   function onTestData(){
-    log('Testdata laden...');resetState();resetUI();state.currentSource='testdata';
+    logDebug('--- Testdata geladen ---');
+    resetState();resetUI();state.currentSource='testdata';
     state.loadedItems=[{naam:'testdata.txt',type:'TXT',bron:'testdata',status:'geladen'}];updateBestandenlijst();
     var artikelen=WvSvParser.parseerArtikelen(WvSvParser.TESTDATA);
-    log('Testdata | artikelen:',artikelen.length);toonResultaten(artikelen);
+    logDebug('Testdata artikelen: '+artikelen.length);
+    toonResultaten(artikelen);
     if(state.loadedItems[0])state.loadedItems[0].status='geanalyseerd';updateBestandenlijst();
     setStatus('Testdata — '+artikelen.length+' artikelen geladen.','succes');
   }
@@ -166,7 +227,7 @@ const WvSvUpload = (() => {
     $id('btn-download')?.addEventListener('click',onDownload);$id('btn-alles-wissen')?.addEventListener('click',allesWissen);
     $id('upload-zoek')?.addEventListener('input',onZoek);
     if(typeof pdfjsLib!=='undefined')pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-    log('v8 klaar. PDF.js:',(typeof pdfjsLib!=='undefined'?'OK':'ONTBREEKT'),'Mammoth:',(typeof mammoth!=='undefined'?'OK':'ONTBREEKT'));
+    logDebug('v9 klaar — PDF.js: '+(typeof pdfjsLib!=='undefined'?'OK':'ONTBREEKT')+' | Mammoth: '+(typeof mammoth!=='undefined'?'OK':'ONTBREEKT'));
   }
   return {init,onTestData,verwijderItem,verwijderTestdata,allesWissen,naarPagina,filterBoek};
 })();
