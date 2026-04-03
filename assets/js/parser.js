@@ -1,14 +1,5 @@
-/** parser.js v11 - positie-gebaseerde segmentatie */
+/** parser.js v12 - alleen echte Artikel-koppen als segmentstart */
 const WvSvParser = (() => {
-
-  const ART_RE = /\bArt(?:ikel)?\.?\s+(\d+\.\d+(?:\.\d+)*)\s*\.?\s*/gi;
-
-  function isVerwijzing(directNa) {
-    if (!directNa) return false;
-    if (/^[\s,]*(?:eerste|tweede|derde|vierde|vijfde|zesde|zevende|achtste|negende|tiende|is van|jo\.|en artikel|of artikel)\b/i.test(directNa)) return true;
-    if (/^[a-z]\s+\S/.test(directNa) && !/^\[/.test(directNa)) return true;
-    return false;
-  }
 
   function reinigTitel(titel) {
     if (!titel) return '';
@@ -34,60 +25,55 @@ const WvSvParser = (() => {
   }
 
   function isKop(regel) {
-    const m = /^\s*(Art(?:ikel)?\.?)\s+(\d+\.\d+(?:\.\d+)*)\s*\.?\s*(.*)/i.exec(regel.trim());
+    const m = /^\s*Artikel\s+(\d+\.\d+(?:\.\d+)*)\s*\.?\s*(.*)/i.exec(regel.trim());
     if (!m) return null;
-    const rest = m[3].trim();
-    if (isVerwijzing(rest)) return null;
-    return { nummer: m[2].trim(), rest: rest };
+    return { nummer: m[1].trim(), rest: m[2].trim() };
+  }
+
+  function normaliseer(tekst) {
+    return tekst
+      .replace(/\r\n/g, '\n')
+      .replace(/\r/g, '\n')
+      .replace(/[^\S\n]+/g, ' ')
+      .replace(/((?:Boek|Hoofdstuk|Titel|Afdeling|§)\s+\d)/g, '\n\n$1')
+      .replace(/(^|\n|\.)\s*Art\.\s+(\d)/g, '$1\nArtikel $2')
+      .replace(/\bArtikel\s+(\d)/g, '\nArtikel $1')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim();
   }
 
   function parseerArtikelen(tekst) {
     const artikelen = [];
     if (!tekst || !tekst.trim()) return artikelen;
-    let t = tekst
-      .replace(/\r\n/g, '\n')
-      .replace(/\r/g, '\n')
-      .replace(/[^\S\n]+/g, ' ')
-      .trim();
-    t = t.replace(/((?:Boek|Hoofdstuk|Titel|Afdeling|§)\s+\d)/g, '\n\n$1');
-    const re = new RegExp(ART_RE.source, 'gi');
+    const t = normaliseer(tekst);
+    const re = /(?:^|(?<=\n))\s*Artikel\s+([\d]+(?:[\s.]+[\d]+)*)/g;
     const matches = [];
     let m;
     while ((m = re.exec(t)) !== null) {
-      const nummer = m[1];
+      const nummer = m[1].trim().replace(/\s+/g, '.').replace(/\.+/g, '.');
       const pos = m.index;
       const restStart = m.index + m[0].length;
-      const directNa = t.substring(restStart, restStart + 80).trim();
-      matches.push({ nummer, pos, restStart, directNa });
+      matches.push({ nummer, pos, restStart });
     }
-    const echteStarts = [];
-    const afgewezen = [];
-    for (let i = 0; i < matches.length; i++) {
-      if (isVerwijzing(matches[i].directNa)) {
-        if (afgewezen.length < 10) afgewezen.push(matches[i].nummer + ' [' + matches[i].directNa.substring(0, 40) + ']');
-      } else {
-        echteStarts.push(matches[i]);
-      }
-    }
+    const debugStarts = [];
     const debugSegmenten = [];
-    for (let i = 0; i < echteStarts.length; i++) {
-      const start = echteStarts[i];
-      let einde = (i + 1 < echteStarts.length) ? echteStarts[i + 1].pos : t.length;
+    for (let i = 0; i < matches.length; i++) {
+      const start = matches[i];
+      let einde = (i + 1 < matches.length) ? matches[i + 1].pos : t.length;
       let segment = t.substring(start.restStart, einde);
       const grens = segment.search(/\n\n(?:Boek|Hoofdstuk|Titel|Afdeling|§)\s+\d/);
       if (grens >= 0) segment = segment.substring(0, grens);
       segment = segment.replace(/\s+/g, ' ').trim();
       const ti = splitTitelInhoud(segment);
       artikelen.push({ artikel: start.nummer, titel: ti.titel, inhoud: ti.inhoud });
-      if (debugSegmenten.length < 10) {
-        debugSegmenten.push({ nr: start.nummer, pos: start.pos, titel: ti.titel, inhoudStart: (ti.inhoud || '').substring(0, 120) });
-      }
+      if (debugStarts.length < 20) debugStarts.push({ nummer: start.nummer, pos: start.pos });
+      if (debugSegmenten.length < 10) debugSegmenten.push({ nr: start.nummer, titel: ti.titel, inhoudStart: (ti.inhoud || '').substring(0, 120) });
     }
-    _toonParserDebug(echteStarts, afgewezen, debugSegmenten, artikelen.length, matches.length);
+    _toonParserDebug(debugStarts, debugSegmenten, artikelen.length, matches.length);
     return artikelen;
   }
 
-  function _toonParserDebug(starts, afgewezen, segmenten, totaal, totaalMatches) {
+  function _toonParserDebug(starts, segmenten, totaal, totaalKandidaten) {
     const blok = document.getElementById('debug-log');
     if (!blok) return;
     const tijd = new Date().toLocaleTimeString('nl-NL', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
@@ -98,16 +84,15 @@ const WvSvParser = (() => {
       blok.appendChild(d);
       blok.scrollTop = blok.scrollHeight;
     };
-    voeg('Totaal matches: ' + totaalMatches + ' | Geaccepteerd: ' + totaal + ' | Afgewezen: ' + afgewezen.length);
+    voeg('Artikel-koppen: ' + totaalKandidaten + ' | Artikelen: ' + totaal);
     if (starts.length > 0) {
-      voeg('Eerste 20 artikelstarts:');
-      starts.slice(0, 20).forEach(s => voeg('  pos=' + s.pos + ' Art. ' + s.nummer));
+      voeg('Eerste 20 artikelkoppen:');
+      starts.forEach(s => voeg('  pos=' + s.pos + ' Art. ' + s.nummer));
     }
     if (segmenten.length > 0) {
       voeg('Eerste 10 segmenten:');
       segmenten.forEach(s => voeg('  ' + s.nr + (s.titel ? ' [' + s.titel + ']' : '') + ' -> ' + s.inhoudStart.substring(0, 80)));
     }
-    if (afgewezen.length > 0) { voeg('Afgewezen (max 10):'); afgewezen.forEach(a => voeg('  - ' + a)); }
     if (totaal === 0) voeg('FOUT: geen artikelen gevonden', true);
   }
 
