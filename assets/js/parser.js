@@ -1,11 +1,10 @@
-/** parser.js v7 - robuust voor PDF-tekst zonder regeleindes */
+/** parser.js v8 - robuust voor PDF-tekst, correcte normalisatie */
 const WvSvParser = (() => {
   const REGEL_REGEX = /^\s*(Art(?:ikel)?\.?)\s+(\d+\.\d+(?:\.\d+)*)\s*\.?\s*(.*)/i;
 
   function isKop(regel) {
     const m = REGEL_REGEX.exec(regel.trim());
     if (!m) return null;
-    // Voorkom vals positief: "Artikelen" matcht niet want \d volgt direct
     return { nummer: m[2].trim(), titel: m[3].trim() };
   }
 
@@ -13,11 +12,8 @@ const WvSvParser = (() => {
     return tekst
       .replace(/\r\n/g, '\n')
       .replace(/\r/g, '\n')
-      // Meerdere spaties op 1 regel -> 1 spatie
       .replace(/[^\S\n]+/g, ' ')
-      // Zet "Artikel X.X.X" altijd op eigen regel
-      .replace(/(?<!\n)(Art(?:ikel)?\.?\s+\d+\.\d)/g, '\nArt')
-      .replace(/(?<!\n)(Artikel\s+\d+\.\d)/g, '\nArtikel')
+      .replace(/(Art(?:ikel)?\.?\s+\d+\.\d)/g, '\n$1')
       .trim();
   }
 
@@ -41,13 +37,12 @@ const WvSvParser = (() => {
       if (kop) {
         opslaan();
         huidig = { nummer: kop.nummer, titel: kop.titel };
-        if (debugMatches.length < 10) debugMatches.push('Art. ' + kop.nummer + (kop.titel ? ' — ' + kop.titel : ''));
+        if (debugMatches.length < 10) debugMatches.push('Art. ' + kop.nummer + (kop.titel ? ' --- ' + kop.titel : ''));
       } else if (huidig) {
         buffer.push(regels[i]);
       }
     }
     opslaan();
-
     _toonParserDebug(debugMatches, artikelen.length, regels.length);
     return artikelen;
   }
@@ -65,11 +60,11 @@ const WvSvParser = (() => {
     voeg('Regels na normalisatie: ' + aantalRegels);
     voeg('Artikelen gevonden: ' + totaal);
     if (matches.length > 0) {
-      voeg('Eerste ' + matches.length + ' koppen gevonden:');
+      voeg('Eerste ' + matches.length + ' koppen:');
       matches.forEach(m => voeg('  ' + m));
     } else {
-      voeg('FOUT: geen artikelkoppen herkend', true);
-      voeg('Verwacht patroon: "Artikel 2.5.4" of "Art. 2.5.4"', true);
+      voeg('FOUT: geen koppen herkend na normalisatie', true);
+      voeg('Verwacht: "Artikel 2.5.4" of "Art. 2.5.4"', true);
     }
   }
 
@@ -84,8 +79,8 @@ Art. 2.5.3 Staandehouding verdachten en getuigen
 3. De staandehouding duurt zo kort als mogelijk is.
 Art. 2.5.4 [aanhouding bij heterdaad]
 1. In geval van ontdekking op heterdaad van een strafbaar feit kan ieder de verdachte aanhouden.
-2. De opsporingsambtenaar die een verdachte bij ontdekking op heterdaad aanhoudt, geleidt hem zo spoedig mogelijk voor aan de officier van justitie of de hulpofficier van justitie.
-3. Vindt de aanhouding plaats door een ander dan een opsporingsambtenaar, dan levert deze de aangehoudene onverwijld over aan een opsporingsambtenaar.
+2. De opsporingsambtenaar die een verdachte bij ontdekking op heterdaad aanhoudt, geleidt hem zo spoedig mogelijk voor.
+3. Vindt de aanhouding plaats door een ander dan een opsporingsambtenaar, dan levert deze de aangehoudene onverwijld over.
 Art. 2.5.5 Recht op mededeling
 1. De verdachte heeft het recht dat hem zo spoedig mogelijk wordt meegedeeld ter zake van welk strafbaar feit hij als verdachte wordt aangemerkt.
 Art. 2.5.6 Aanhouding buiten heterdaad
