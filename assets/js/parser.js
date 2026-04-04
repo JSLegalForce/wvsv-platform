@@ -1,24 +1,24 @@
-/** parser.js v15 - FASE 1: structuurgedreven parser WvSv - met wettekstzone-afbakening */
+/** parser.js v16 - FASE 1: structuurgedreven parser WvSv - wettekstzone v2 */
 const WvSvParser = (() => {
 
   /* ── helpers ─────────────────────────────────────────────────── */
   function reinigTitel(titel) {
     if (!titel) return '';
     let t = titel.trim();
-    t = t.replace(/^\[[a-z]\s+/i, '');
-    t = t.replace(/^[a-z]\s+(?=[A-Z\[])/, '');
-    let open = (t.match(/\[/g) || []).length;
-    let sluit = (t.match(/\]/g) || []).length;
+    t = t.replace(/^[[a-z]s+/i, '');
+    t = t.replace(/^[a-z]s+(?=[A-Z[])/, '');
+    let open = (t.match(/[/g) || []).length;
+    let sluit = (t.match(/]/g) || []).length;
     while (sluit > open && t.endsWith(']')) { t = t.slice(0,-1).trim(); sluit--; }
-    t = t.replace(/\[\s*\]/g, '').trim();
+    t = t.replace(/[s*]/g, '').trim();
     return t;
   }
 
   function splitTitelInhoud(segment) {
     let s = segment.trim();
     if (!s) return { titel: '', inhoud: '' };
-    if (/^\d+\./.test(s)) return { titel: '', inhoud: s };
-    const lm = s.match(/^(.*?)\s+(?=\d+\.\s)/);
+    if (/^d+./.test(s)) return { titel: '', inhoud: s };
+    const lm = s.match(/^(.*?)s+(?=d+.s)/);
     if (lm && lm[1].trim()) {
       return { titel: reinigTitel(lm[1].trim()), inhoud: s.substring(lm[0].length) };
     }
@@ -27,138 +27,137 @@ const WvSvParser = (() => {
 
   function normaliseer(tekst) {
     return tekst
-      .replace(/\r\n/g, '\n').replace(/\r/g, '\n')
-      .replace(/[^\S\n]+/g, ' ')
-      .replace(/(?<=[^\n])\s*(Boek\s+\d)/g, '\n\n$1')
-      .replace(/(?<=[^\n])\s*(Hoofdstuk\s+\d)/g, '\n\n$1')
-      .replace(/(?<=[^\n])\s*(Titel\s+\d+\.\d)/g, '\n\n$1')
-      .replace(/(^|\n|\.)\s*Art\.\s+(\d)/g, '$1\nArtikel $2')
-      .replace(/\bArtikel\s+(\d)/g, '\nArtikel $1')
-      .replace(/\n{3,}/g, '\n\n')
+      .replace(/
+
+/g, '
+').replace(/
+/g, '
+')
+      .replace(/[^S
+]+/g, ' ')
+      .replace(/(?<=[^
+])s*(Boeks+d)/g, '
+
+$1')
+      .replace(/(?<=[^
+])s*(Hoofdstuks+d)/g, '
+
+$1')
+      .replace(/(?<=[^
+])s*(Titels+d+.d)/g, '
+
+$1')
+      .replace(/(^|
+|.)s*Art.s+(d)/g, '$1
+Artikel $2')
+      .replace(/Artikels+(d)/g, '
+Artikel $1')
+      .replace(/
+{3,}/g, '
+
+')
       .trim();
   }
 
-  /* ── wettekstzone-afbakening ─────────────────────────────────── */
+  /* ── wettekstzone-afbakening v2 ──────────────────────────────── */
   /*
-   * Strategie:
-   *   START: de LAATSTE positie vóór of op "Boek 1" of "Artikel 1.1.1"
-   *          die na een paginablok met inhoud staat én niet in de
-   *          inhoudsopgave zit.
-   *          We zoeken naar "Boek 1" gevolgd door content op de volgende
-   *          regels (niet meteen opnieuw "Boek" / "Hoofdstuk" / nummers).
+   * START: eerste "Boek 1" waarbij "Boek 2" NIET binnen 5 regels staat.
+   *        Inhoudsopgave: "Boek 1
+Boek 2
+Boek 3" staan dicht op elkaar.
+   *        Echte wettekst: "Boek 1" heeft hoofdstukken/artikelen ertussen.
    *
-   *   EINDE: de eerste positie van een slotsectie:
-   *          - "Transponeringstabel"
-   *          - "Bijlage" (op eigen regel)
-   *          - "BIJLAGE"
-   *          - "Toelichting" (op eigen regel, alleen als na uitgebreide tekst)
+   * Fallback volgorde:
+   *   1. Boek 1 zonder Boek 2 binnen 5 regels  (echte wettekst)
+   *   2. Artikel 1.1.1                          (als geen Boek 1 gevonden)
+   *   3. Laatste Boek 1                         (noodgeval)
+   *   4. Volledige tekst                        (niets gevonden)
    *
-   *   Detectie inhoudsopgave:
-   *          Een "Boek 1" is waarschijnlijk inhoudsopgave als op dezelfde
-   *          of de volgende 1-3 regels ook "Boek 2", "Boek 3" etc. staan
-   *          zonder tussenliggende inhoudstekst (>100 tekens).
+   * EINDE: eerste regel die begint met:
+   *   "Transponeringstabel" | "TRANSPONERINGSTABEL" | "Bijlage" | "BIJLAGE"
    */
   function zoekWettekstZone(tekst) {
-    const regels = tekst.split('\n');
+    const regels = tekst.split('
+');
     const n = regels.length;
 
-    /* -- stap 1: zoek kandidaat-startregels "Boek 1" ── */
-    const reBoek1   = /^\s*Boek\s+1\b/i;
-    const reBoekN   = /^\s*Boek\s+\d+\b/i;
-    const reArt111  = /^\s*Artikel\s+1\.1\.1\b/i;
-
-    // Verzamel alle regelnummers waar "Boek 1" voorkomt
+    /* stap 1 – verzamel alle Boek 1 posities */
     const boek1Posities = [];
     for (let i = 0; i < n; i++) {
-      if (reBoek1.test(regels[i])) boek1Posities.push(i);
+      if (/^s*Boeks+1/i.test(regels[i])) boek1Posities.push(i);
     }
 
-    /* -- stap 2: onderscheid echte Boek 1 van inhoudsopgave ── */
-    // In de inhoudsopgave staan Boek 1, Boek 2, Boek 3 ... vlak achter elkaar
-    // (binnen 20 regels). In de echte wettekst is tussen Boek 1 en Boek 2
-    // veel content (hoofdstukken, titels, artikelen).
-    function isInhoudsopgaveBoek1(pos) {
-      // Kijk of binnen 30 regels na pos ook "Boek 2" of "Boek 3" staat
-      // én er geen "Artikel" staat in die 30 regels
-      let heeftBoek2 = false, heeftArtikel = false;
-      for (let j = pos + 1; j < Math.min(pos + 30, n); j++) {
-        if (/^\s*Boek\s+[2-9]/i.test(regels[j])) heeftBoek2 = true;
-        if (/^\s*Artikel\s+/i.test(regels[j])) heeftArtikel = true;
+    /* stap 2 – vind eerste ECHTE Boek 1:
+       inhoudsopgave heeft Boek 2 binnen 5 regels, echte wettekst niet */
+    function isInhoudsopgave(pos) {
+      for (let j = pos + 1; j < Math.min(pos + 6, n); j++) {
+        if (/^s*Boeks+[2-9]/i.test(regels[j])) return true;
       }
-      return heeftBoek2 && !heeftArtikel;
+      return false;
     }
 
-    // Vind de eerste "echte" Boek 1 (niet in inhoudsopgave)
     let startRegel = -1;
     for (const pos of boek1Posities) {
-      if (!isInhoudsopgaveBoek1(pos)) {
-        startRegel = pos;
-        break;
-      }
+      if (!isInhoudsopgave(pos)) { startRegel = pos; break; }
     }
 
-    // Fallback: zoek op Artikel 1.1.1 als Boek 1 niet gevonden/onderscheiden
+    /* stap 3 – fallback op Artikel 1.1.1 */
     if (startRegel < 0) {
       for (let i = 0; i < n; i++) {
-        if (reArt111.test(regels[i])) { startRegel = i; break; }
+        if (/^s*Artikels+1.1.1/i.test(regels[i])) { startRegel = i; break; }
       }
     }
 
-    // Fallback 2: eerste echte "Boek X" ongeacht positie
+    /* stap 4 – noodgeval: neem de laatste Boek 1 */
     if (startRegel < 0 && boek1Posities.length > 0) {
-      startRegel = boek1Posities[boek1Posities.length - 1]; // neem de laatste
+      startRegel = boek1Posities[boek1Posities.length - 1];
     }
 
-    // Niets gevonden → geef volledige tekst terug
+    /* stap 5 – niets gevonden: volledige tekst */
     if (startRegel < 0) {
-      _logZone('START niet gevonden – volledige tekst gebruikt', tekst.length, tekst);
+      _logZone('START niet gevonden – volledige tekst gebruikt', tekst, 0, tekst.length);
       return tekst;
     }
 
-    /* -- stap 3: zoek einde wettekst ── */
-    const reEinde = /^\s*(Transponeringstabel|TRANSPONERINGSTABEL|Bijlage\b|BIJLAGE\b)/i;
-    let eindRegel = n; // standaard: tot het einde
+    /* stap 6 – zoek einde (transponeringstabel / bijlage) */
+    const reEinde = /^s*(Transponeringstabel|TRANSPONERINGSTABEL|Bijlage|BIJLAGE)/i;
+    let eindRegel = n;
     for (let i = startRegel + 1; i < n; i++) {
-      if (reEinde.test(regels[i])) {
-        eindRegel = i;
-        break;
-      }
+      if (reEinde.test(regels[i])) { eindRegel = i; break; }
     }
 
-    /* -- stap 4: bouw zone ── */
-    const zone = regels.slice(startRegel, eindRegel).join('\n');
-    const startTeken = regels.slice(0, startRegel).join('\n').length;
+    /* stap 7 – bouw zone */
+    const zone = regels.slice(startRegel, eindRegel).join('
+');
+    const startTeken = regels.slice(0, startRegel).join('
+').length;
     const eindTeken  = startTeken + zone.length;
-
     _logZone(
       'Zone: regel ' + startRegel + '-' + eindRegel +
       ' | tekens ' + startTeken + '-' + eindTeken,
-      zone.length,
-      zone
+      zone, startTeken, eindTeken
     );
-
     return zone;
   }
 
-  function _logZone(label, zoneLen, zone) {
-    // Wacht tot DOM beschikbaar is
+  function _logZone(label, zone, startTeken, eindTeken) {
     setTimeout(function() {
-      let blok = document.getElementById('debug-log');
+      const blok = document.getElementById('debug-log');
       if (!blok) return;
       const tijd = new Date().toLocaleTimeString('nl-NL',
         { hour:'2-digit', minute:'2-digit', second:'2-digit' });
-      const voeg = (tekst, rood) => {
+      const voeg = (tekst) => {
         const d = document.createElement('div');
-        d.style.cssText = 'padding:1px 0;border-bottom:1px solid #2a2a4a;' +
-          (rood ? 'color:#ff6b6b;font-weight:bold;' : 'color:#7ec8e3;');
+        d.style.cssText = 'padding:1px 0;border-bottom:1px solid #2a2a4a;color:#7ec8e3;';
         d.textContent = '[' + tijd + '] [Zone] ' + tekst;
-        blok.appendChild(d);
-        blok.scrollTop = blok.scrollHeight;
+        blok.appendChild(d); blok.scrollTop = blok.scrollHeight;
       };
       voeg(label);
-      voeg('Zone lengte: ' + zoneLen + ' tekens');
-      voeg('Eerste 300 tekens: ' + zone.substring(0, 300).replace(/\n/g,' '));
-      voeg('Laatste 300 tekens: ' + zone.substring(Math.max(0, zone.length - 300)).replace(/\n/g,' '));
+      voeg('Zone: ' + zone.length + ' tekens | start: ' + startTeken + ' | eind: ' + eindTeken);
+      voeg('Eerste 300: ' + zone.substring(0, 300).replace(/
+/g,' '));
+      voeg('Laatste 300: ' + zone.substring(Math.max(0, zone.length-300)).replace(/
+/g,' '));
     }, 0);
   }
 
@@ -166,15 +165,15 @@ const WvSvParser = (() => {
   function parseerStructuur(tekst) {
     if (!tekst || !tekst.trim()) return { boeken: [] };
 
-    // Stap 1: afbakenen op wettekstzone
     const zone = zoekWettekstZone(tekst);
-
     const t = normaliseer(zone);
-    const regels = t.split('\n');
-    const reBoek      = /^Boek\s+(\d+)\s*(.*)$/i;
-    const reHoofdstuk = /^Hoofdstuk\s+(\d+)\s*(.*)$/i;
-    const reTitel     = /^Titel\s+(\d+\.\d+)\s*(.*)$/i;
-    const reArtikel   = /^Artikel\s+([\d]+(?:[\s.][\d]+[a-z]?)*)\s*(.*)$/i;
+    const regels = t.split('
+');
+
+    const reBoek      = /^Boeks+(d+)s*(.*)$/i;
+    const reHoofdstuk = /^Hoofdstuks+(d+)s*(.*)$/i;
+    const reTitel     = /^Titels+(d+.d+)s*(.*)$/i;
+    const reArtikel   = /^Artikels+([d]+(?:[s.][d]+[a-z]?)*)s*(.*)$/i;
 
     const structuurItems = [];
     for (let i = 0; i < regels.length; i++) {
@@ -182,18 +181,14 @@ const WvSvParser = (() => {
       if (!r) continue;
       let m;
       if ((m = reBoek.exec(r))) {
-        structuurItems.push({ type:'boek', nummer:m[1].trim(),
-          titel:(m[2]||'').trim(), pos:i });
+        structuurItems.push({ type:'boek', nummer:m[1].trim(), titel:(m[2]||'').trim(), pos:i });
       } else if ((m = reHoofdstuk.exec(r))) {
-        structuurItems.push({ type:'hoofdstuk', nummer:m[1].trim(),
-          titel:(m[2]||'').trim(), pos:i });
+        structuurItems.push({ type:'hoofdstuk', nummer:m[1].trim(), titel:(m[2]||'').trim(), pos:i });
       } else if ((m = reTitel.exec(r))) {
-        structuurItems.push({ type:'titel', nummer:m[1].trim(),
-          titel:(m[2]||'').trim(), pos:i });
+        structuurItems.push({ type:'titel', nummer:m[1].trim(), titel:(m[2]||'').trim(), pos:i });
       } else if ((m = reArtikel.exec(r))) {
-        const nr = m[1].trim().replace(/\s+/g,'.').replace(/\.+/g,'.');
-        structuurItems.push({ type:'artikel', nummer:nr,
-          titel:(m[2]||'').trim(), pos:i });
+        const nr = m[1].trim().replace(/s+/g,'.').replace(/.+/g,'.');
+        structuurItems.push({ type:'artikel', nummer:nr, titel:(m[2]||'').trim(), pos:i });
       }
     }
 
@@ -201,30 +196,18 @@ const WvSvParser = (() => {
     let huidigBoek = null, huidigHoofdstuk = null, huidigTitel = null;
     for (const item of structuurItems) {
       if (item.type === 'boek') {
-        huidigBoek = { nummer:item.nummer,
-          titel:item.titel||('Boek '+item.nummer), hoofdstukken:[] };
+        huidigBoek = { nummer:item.nummer, titel:item.titel||('Boek '+item.nummer), hoofdstukken:[] };
         huidigHoofdstuk = null; huidigTitel = null;
         boeken.push(huidigBoek);
       } else if (item.type === 'hoofdstuk') {
-        if (!huidigBoek) {
-          huidigBoek = { nummer:'?', titel:'Onbekend boek', hoofdstukken:[] };
-          boeken.push(huidigBoek);
-        }
-        huidigHoofdstuk = { nummer:item.nummer,
-          titel:item.titel||('Hoofdstuk '+item.nummer), titels:[] };
+        if (!huidigBoek) { huidigBoek = { nummer:'?', titel:'Onbekend boek', hoofdstukken:[] }; boeken.push(huidigBoek); }
+        huidigHoofdstuk = { nummer:item.nummer, titel:item.titel||('Hoofdstuk '+item.nummer), titels:[] };
         huidigTitel = null;
         huidigBoek.hoofdstukken.push(huidigHoofdstuk);
       } else if (item.type === 'titel') {
-        if (!huidigBoek) {
-          huidigBoek = { nummer:'?', titel:'Onbekend boek', hoofdstukken:[] };
-          boeken.push(huidigBoek);
-        }
-        if (!huidigHoofdstuk) {
-          huidigHoofdstuk = { nummer:'?', titel:'Onbekend hoofdstuk', titels:[] };
-          huidigBoek.hoofdstukken.push(huidigHoofdstuk);
-        }
-        huidigTitel = { nummer:item.nummer,
-          titel:item.titel||('Titel '+item.nummer), artikelen:[] };
+        if (!huidigBoek) { huidigBoek = { nummer:'?', titel:'Onbekend boek', hoofdstukken:[] }; boeken.push(huidigBoek); }
+        if (!huidigHoofdstuk) { huidigHoofdstuk = { nummer:'?', titel:'Onbekend hoofdstuk', titels:[] }; huidigBoek.hoofdstukken.push(huidigHoofdstuk); }
+        huidigTitel = { nummer:item.nummer, titel:item.titel||('Titel '+item.nummer), artikelen:[] };
         huidigHoofdstuk.titels.push(huidigTitel);
       } else if (item.type === 'artikel') {
         if (huidigTitel) huidigTitel.artikelen.push(item.nummer);
@@ -240,15 +223,15 @@ const WvSvParser = (() => {
     const artikelen = [];
     if (!tekst || !tekst.trim()) return artikelen;
 
-    // Stap 1: afbakenen op wettekstzone
     const zone = zoekWettekstZone(tekst);
-
     const t = normaliseer(zone);
-    const re = /(?:^|(?<=\n))\s*Artikel\s+([\d]+(?:[\s.]+[\d]+[a-z]?)*)\s*/g;
+
+    const re = /(?:^|(?<=
+))s*Artikels+([d]+(?:[s.]+[d]+[a-z]?)*)s*/g;
     const matches = [];
     let m;
     while ((m = re.exec(t)) !== null) {
-      const nummer = m[1].trim().replace(/\s+/g,'.').replace(/\.+/g,'.');
+      const nummer = m[1].trim().replace(/s+/g,'.').replace(/.+/g,'.');
       matches.push({ nummer, pos:m.index, restStart:m.index+m[0].length });
     }
 
@@ -257,14 +240,15 @@ const WvSvParser = (() => {
       const start = matches[i];
       let einde = (i+1 < matches.length) ? matches[i+1].pos : t.length;
       let segment = t.substring(start.restStart, einde);
-      const grens = segment.search(/\n\n(?:Boek|Hoofdstuk|Titel|Afdeling|§)\s+\d/);
+      const grens = segment.search(/
+
+(?:Boek|Hoofdstuk|Titel|Afdeling|§)s+d/);
       if (grens >= 0) segment = segment.substring(0, grens);
-      segment = segment.replace(/\s+/g,' ').trim();
+      segment = segment.replace(/s+/g,' ').trim();
       const ti = splitTitelInhoud(segment);
       artikelen.push({ artikel:start.nummer, titel:ti.titel, inhoud:ti.inhoud });
-      if (debugStarts.length < 20)   debugStarts.push({ nummer:start.nummer, pos:start.pos });
-      if (debugSegmenten.length < 10) debugSegmenten.push({
-        nr:start.nummer, titel:ti.titel, inhoudStart:(ti.inhoud||'').substring(0,120) });
+      if (debugStarts.length < 20)    debugStarts.push({ nummer:start.nummer, pos:start.pos });
+      if (debugSegmenten.length < 10) debugSegmenten.push({ nr:start.nummer, titel:ti.titel, inhoudStart:(ti.inhoud||'').substring(0,120) });
     }
     _toonParserDebug(debugStarts, debugSegmenten, artikelen.length, matches.length);
     return artikelen;
@@ -274,12 +258,10 @@ const WvSvParser = (() => {
   function _toonStructuurDebug(boeken, debugItems) {
     const blok = document.getElementById('debug-log');
     if (!blok) return;
-    const tijd = new Date().toLocaleTimeString('nl-NL',
-      { hour:'2-digit', minute:'2-digit', second:'2-digit' });
+    const tijd = new Date().toLocaleTimeString('nl-NL', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
     const voeg = (tekst, rood) => {
       const d = document.createElement('div');
-      d.style.cssText = 'padding:1px 0;border-bottom:1px solid #2a2a4a;' +
-        (rood ? 'color:#ff6b6b;font-weight:bold;' : '');
+      d.style.cssText = 'padding:1px 0;border-bottom:1px solid #2a2a4a;' + (rood ? 'color:#ff6b6b;font-weight:bold;' : '');
       d.textContent = '[' + tijd + '] [Struct] ' + tekst;
       blok.appendChild(d); blok.scrollTop = blok.scrollHeight;
     };
@@ -287,35 +269,33 @@ const WvSvParser = (() => {
     const totTitel = boeken.reduce((s,b)=>s+b.hoofdstukken.reduce((s2,h)=>s2+h.titels.length,0),0);
     const totArt   = boeken.reduce((s,b)=>s+b.hoofdstukken.reduce((s2,h)=>s2+h.titels.reduce((s3,t)=>s3+t.artikelen.length,0),0),0);
     voeg('Boeken: '+boeken.length+' | Hoofdstukken: '+totHfst+' | Titels: '+totTitel+' | Artikelrefs: '+totArt);
-    if (debugItems.length>0) {
+    if (debugItems.length > 0) {
       voeg('Eerste 10 structuurkoppen:');
-      debugItems.forEach(i=>voeg('  ['+i.type.toUpperCase()+'] '+i.nummer+(i.titel?' - '+i.titel.substring(0,50):'')+' (pos:'+i.pos+')'));
+      debugItems.forEach(i => voeg('  ['+i.type.toUpperCase()+'] '+i.nummer+(i.titel?' - '+i.titel.substring(0,50):'')+' (pos:'+i.pos+')'));
     }
-    if (boeken.length===0) voeg('Geen structuurkoppen gevonden - controleer invoerformaat', true);
+    if (boeken.length === 0) voeg('Geen structuurkoppen gevonden - controleer invoerformaat', true);
   }
 
   function _toonParserDebug(starts, segmenten, totaal, totaalKandidaten) {
     const blok = document.getElementById('debug-log');
     if (!blok) return;
-    const tijd = new Date().toLocaleTimeString('nl-NL',
-      { hour:'2-digit', minute:'2-digit', second:'2-digit' });
+    const tijd = new Date().toLocaleTimeString('nl-NL', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
     const voeg = (tekst, rood) => {
       const d = document.createElement('div');
-      d.style.cssText = 'padding:1px 0;border-bottom:1px solid #2a2a4a;' +
-        (rood ? 'color:#ff6b6b;font-weight:bold;' : '');
+      d.style.cssText = 'padding:1px 0;border-bottom:1px solid #2a2a4a;' + (rood ? 'color:#ff6b6b;font-weight:bold;' : '');
       d.textContent = '[' + tijd + '] [Parser] ' + tekst;
       blok.appendChild(d); blok.scrollTop = blok.scrollHeight;
     };
     voeg('Artikel-koppen: '+totaalKandidaten+' | Artikelen: '+totaal);
-    if (starts.length>0) {
+    if (starts.length > 0) {
       voeg('Eerste 20 artikelkoppen:');
-      starts.forEach(s=>voeg('  pos='+s.pos+' Art. '+s.nummer));
+      starts.forEach(s => voeg('  pos='+s.pos+' Art. '+s.nummer));
     }
-    if (segmenten.length>0) {
+    if (segmenten.length > 0) {
       voeg('Eerste 10 segmenten:');
-      segmenten.forEach(s=>voeg('  '+s.nr+(s.titel?' ['+s.titel+']':'')+' -> '+s.inhoudStart.substring(0,80)));
+      segmenten.forEach(s => voeg('  '+s.nr+(s.titel?' ['+s.titel+']':'')+' -> '+s.inhoudStart.substring(0,80)));
     }
-    if (totaal===0) voeg('FOUT: geen artikelen gevonden', true);
+    if (totaal === 0) voeg('FOUT: geen artikelen gevonden', true);
   }
 
   /* ── testdata ────────────────────────────────────────────────── */
@@ -328,7 +308,7 @@ const WvSvParser = (() => {
     normaliseer,
     zoekWettekstZone,
     isKop: function(r) {
-      const m = /^\s*Artikel\s+(\d+\.\d+(?:\.\d+[a-z?]?)*)\s*\.?\s*(.*)/i.exec(r.trim());
+      const m = /^s*Artikels+(d+.d+(?:.d+[a-z?]?)*)s*.?s*(.*)/i.exec(r.trim());
       if (!m) return null;
       return { nummer: m[1].trim(), rest: m[2].trim() };
     },
