@@ -1,5 +1,5 @@
 /* ============================================================
-   JS Legal Force - WvSv Platform  |  style.css  v1.0
+   JS Legal Force - WvSv Platform  |  style.css  v1.1
    ============================================================ */
 
 :root {
@@ -106,13 +106,13 @@ body {
   margin-bottom: 24px;
 }
 
+/* Kaart - NO overflow:hidden to allow dynamic content */
 .kaart {
   background: var(--bg-kaart);
   border: 1px solid var(--rand);
   border-radius: var(--radius);
   box-shadow: var(--schaduw);
   margin-bottom: 20px;
-  overflow: hidden;
 }
 .kaart-header {
   display: flex;
@@ -121,6 +121,7 @@ body {
   padding: 14px 20px;
   background: #f7f9fd;
   border-bottom: 1px solid var(--rand);
+  border-radius: var(--radius) var(--radius) 0 0;
 }
 .kaart-badge {
   font-size: 0.68rem;
