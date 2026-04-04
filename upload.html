@@ -1,141 +1,214 @@
 <!DOCTYPE html>
 <html lang="nl">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Wetstekst uploaden - JS Legal Force</title>
-<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
-<style>
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
-:root{--blauw:#1a2a5e;--blauw-licht:#2a3f8f;--goud:#b07000;--groen:#1a7a4a;--rood:#b52a2a;--achtergrond:#f4f4f6;--wit:#ffffff;--grijs-mid:#d0d0d8;--grijs-licht:#e8e8ef;--tekst:#1a1a2e;--tekst-mid:#555577;--zilver:#9090aa;--radius:10px;--schaduw:0 2px 12px rgba(26,42,94,0.08);}
-body{font-family:'Outfit',sans-serif;background:var(--achtergrond);color:var(--tekst);min-height:100vh;}
-.header{background:var(--blauw);color:#fff;padding:0 32px;height:56px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 8px rgba(0,0,0,0.15);}
-.header-logo{display:flex;align-items:center;gap:10px;font-weight:700;font-size:1.1rem;}
-.header-badge{width:32px;height:32px;background:var(--goud);border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:0.85rem;}
-.header-titel{font-size:0.78rem;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;opacity:0.85;}
-.header-tag{background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.25);padding:4px 12px;border-radius:20px;font-size:0.75rem;font-weight:600;letter-spacing:0.06em;}
-.pagina{max-width:860px;margin:32px auto;padding:0 24px 60px;}
-.paginatitel{font-size:1.4rem;font-weight:700;color:var(--blauw);margin-bottom:4px;}
-.paginasubtitel{font-size:0.88rem;color:var(--tekst-mid);margin-bottom:28px;}
-.info-box{background:#f0f2f8;border-left:3px solid var(--blauw);border-radius:0 8px 8px 0;padding:12px 16px;font-size:0.82rem;color:var(--tekst-mid);line-height:1.7;margin-bottom:20px;}
-.info-box strong{color:var(--blauw);}
-.kaart{background:var(--wit);border-radius:var(--radius);box-shadow:var(--schaduw);border:1px solid var(--grijs-licht);overflow:hidden;margin-bottom:20px;}
-.kaart-header{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:1px solid var(--grijs-licht);background:#fafafa;}
-.kaart-titel{display:flex;align-items:center;gap:10px;font-size:0.82rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--tekst-mid);}
-.sectie-badge{padding:3px 10px;border-radius:5px;font-size:0.72rem;font-weight:700;color:#fff;letter-spacing:0.06em;}
-.badge-upload{background:var(--blauw);} .badge-geladen{background:var(--goud);} .badge-resultaat{background:var(--groen);}
-.kaart-inhoud{padding:20px;}
-.upload-zone{border:2px dashed var(--grijs-mid);border-radius:var(--radius);padding:28px 20px;text-align:center;cursor:pointer;transition:border-color 0.2s,background 0.2s;margin-bottom:16px;position:relative;}
-.upload-zone:hover,.upload-zone.drag-over{border-color:var(--blauw);background:#f0f2f8;}
-.upload-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
-.upload-icoon{font-size:2rem;margin-bottom:8px;color:var(--zilver);}
-.upload-tekst{font-size:0.9rem;color:var(--tekst-mid);font-weight:500;}
-.upload-types{font-size:0.78rem;color:var(--zilver);margin-top:4px;}
-.upload-status{font-size:0.85rem;padding:10px 14px;border-radius:8px;margin-bottom:16px;font-weight:500;min-height:40px;display:flex;align-items:center;}
-.upload-status--info{background:#eef1f9;color:var(--blauw);}
-.upload-status--succes{background:#e8f4ec;color:var(--groen);}
-.upload-status--fout{background:#fbeaea;color:var(--rood);}
-.upload-status--waarschuwing{background:#fff8ec;color:var(--goud);}
-.knop-rij{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
-.knop{padding:9px 18px;border-radius:8px;font-family:'Outfit',sans-serif;font-size:0.88rem;font-weight:600;cursor:pointer;border:2px solid transparent;transition:background 0.15s,border-color 0.15s,opacity 0.15s;}
-.knop:disabled{opacity:0.4;cursor:not-allowed;}
-.knop-primair{background:var(--blauw);color:#fff;} .knop-primair:not(:disabled):hover{background:var(--blauw-licht);}
-.knop-secundair{background:var(--achtergrond);color:var(--blauw);border-color:var(--grijs-mid);} .knop-secundair:not(:disabled):hover{background:var(--grijs-licht);}
-.knop-groen{background:var(--groen);color:#fff;} .knop-groen:not(:disabled):hover{background:#155f39;}
-.knop-gevaar-klein{padding:5px 12px;border-radius:7px;font-family:'Outfit',sans-serif;font-size:0.78rem;font-weight:600;cursor:pointer;border:1.5px solid rgba(181,42,42,0.3);background:rgba(181,42,42,0.08);color:var(--rood);transition:background 0.15s;}
-.knop-gevaar-klein:hover{background:rgba(181,42,42,0.18);}
-.knop-wissen{background:var(--achtergrond);color:var(--rood);border:2px solid rgba(181,42,42,0.3);margin-left:auto;} .knop-wissen:hover{background:rgba(181,42,42,0.06);}
-#upload-lader{display:none;align-items:center;gap:10px;font-size:0.85rem;color:var(--tekst-mid);padding:10px 0;}
-.lader-cirkel{width:18px;height:18px;border:2px solid var(--grijs-mid);border-top-color:var(--blauw);border-radius:50%;animation:draaien 0.7s linear infinite;}
-@keyframes draaien{to{transform:rotate(360deg);}}
-#upload-teller{font-size:0.82rem;font-weight:700;color:var(--groen);background:#e8f4ec;padding:3px 12px;border-radius:20px;}
-.upload-zoek-wrap{margin-bottom:12px;}
-.upload-zoek{width:100%;padding:9px 14px;border:1.5px solid var(--grijs-mid);border-radius:8px;font-family:'Outfit',sans-serif;font-size:0.88rem;color:var(--tekst);background:#fff;outline:none;transition:border-color 0.15s;}
-.upload-zoek:focus{border-color:var(--blauw);}
-.upload-artikel{border:1px solid var(--grijs-licht);border-radius:8px;padding:14px 16px;margin-bottom:10px;background:#fafafa;transition:background 0.15s;}
-.upload-artikel:hover{background:#f0f2f8;}
-.upload-artikel-kop{display:flex;align-items:baseline;gap:12px;margin-bottom:6px;}
-.upload-artikel-nr{font-size:0.82rem;font-weight:700;background:var(--blauw);color:#fff;padding:2px 10px;border-radius:20px;white-space:nowrap;}
-.upload-artikel-titel{font-size:0.9rem;font-weight:600;color:var(--tekst);}
-.upload-artikel-preview{font-size:0.83rem;color:var(--tekst-mid);line-height:1.6;white-space:pre-wrap;}
-.upload-leeg{text-align:center;color:var(--zilver);font-size:0.88rem;padding:32px 20px;line-height:1.7;}
-.geladen-item{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border:1px solid var(--grijs-licht);border-radius:8px;margin-bottom:8px;background:#fafafa;}
-.geladen-item-info{display:flex;flex-direction:column;gap:5px;}
-.geladen-naam{font-size:0.88rem;font-weight:600;color:var(--tekst);}
-.geladen-meta{display:flex;gap:6px;align-items:center;flex-wrap:wrap;}
-.geladen-badge{padding:2px 8px;border-radius:4px;font-size:0.72rem;font-weight:700;color:#fff;}
-.geladen-type{font-size:0.75rem;color:var(--zilver);}
-</style>
-</head>
-<body>
-<header class="header">
-  <div class="header-logo"><div class="header-badge">JS</div>Legal Force</div>
-  <div class="header-titel">NIEUW WETBOEK VAN STRAFVORDERING</div>
-  <div class="header-tag">UPLOAD MODULE</div>
-</header>
-<main class="pagina">
-  <h1 class="paginatitel">Wetstekst uploaden</h1>
-  <p class="paginasubtitel">Upload een bestand met wetstekst. Alle artikelen worden automatisch herkend en kunnen als JSON worden gedownload.</p>
-  <div class="info-box">
-    <strong>Fase 1 testomgeving.</strong> Formaten: <strong>.txt .md .pdf .docx</strong> &nbsp;&middot;&nbsp; Grote bestanden met honderden artikelen worden volledig verwerkt.
-  </div>
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wetstekst uploaden - JS Legal Force</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+    :root{--blauw:#1a2a5e;--blauw-licht:#2a3f8f;--blauw-card:#1e3270;--goud:#b07000;--groen:#1a7a4a;--rood:#b52a2a;--achtergrond:#f0f2f7;--wit:#ffffff;--grijs-mid:#d0d0d8;--grijs-licht:#e8e8ef;--tekst:#1a1a2e;--tekst-mid:#555577;--zilver:#9090aa;--radius:10px;--schaduw:0 2px 12px rgba(26,42,94,0.08);}
+    body{font-family:'Outfit',sans-serif;background:var(--achtergrond);color:var(--tekst);min-height:100vh;}
+    .header{background:var(--blauw);color:#fff;padding:0 32px;height:56px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 8px rgba(0,0,0,0.15);}
+    .header-logo{display:flex;align-items:center;gap:10px;font-weight:700;font-size:1.1rem;}
+    .header-badge{width:32px;height:32px;background:var(--goud);border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:0.85rem;}
+    .header-titel{font-size:0.78rem;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;opacity:0.85;}
+    .header-tag{background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.25);padding:4px 12px;border-radius:20px;font-size:0.75rem;font-weight:600;letter-spacing:0.06em;}
+    .pagina{max-width:1100px;margin:32px auto;padding:0 24px 60px;}
+    .paginatitel{font-size:1.4rem;font-weight:700;color:var(--blauw);margin-bottom:4px;}
+    .paginasubtitel{font-size:0.88rem;color:var(--tekst-mid);margin-bottom:28px;}
+    .info-box{background:#f0f2f8;border-left:3px solid var(--blauw);border-radius:0 8px 8px 0;padding:12px 16px;font-size:0.82rem;color:var(--tekst-mid);line-height:1.7;margin-bottom:20px;}
+    .info-box strong{color:var(--blauw);}
+    .kaart{background:var(--wit);border-radius:var(--radius);box-shadow:var(--schaduw);border:1px solid var(--grijs-licht);overflow:hidden;margin-bottom:20px;}
+    .kaart-header{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:1px solid var(--grijs-licht);background:#fafafa;}
+    .kaart-titel{display:flex;align-items:center;gap:10px;font-size:0.82rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--tekst-mid);}
+    .sectie-badge{padding:3px 10px;border-radius:5px;font-size:0.72rem;font-weight:700;color:#fff;letter-spacing:0.06em;}
+    .badge-upload{background:var(--blauw);}
+    .badge-geladen{background:var(--goud);}
+    .badge-resultaat{background:var(--groen);}
+    .badge-structuur{background:#4a5a9a;}
+    .kaart-inhoud{padding:20px;}
+    .upload-zone{border:2px dashed var(--grijs-mid);border-radius:var(--radius);padding:28px 20px;text-align:center;cursor:pointer;transition:border-color 0.2s,background 0.2s;margin-bottom:16px;position:relative;}
+    .upload-zone:hover,.upload-zone.drag-over{border-color:var(--blauw);background:#f0f2f8;}
+    .upload-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+    .upload-icoon{font-size:2rem;margin-bottom:8px;color:var(--zilver);}
+    .upload-tekst{font-size:0.9rem;color:var(--tekst-mid);font-weight:500;}
+    .upload-types{font-size:0.78rem;color:var(--zilver);margin-top:4px;}
+    .upload-status{font-size:0.85rem;padding:10px 14px;border-radius:8px;margin-bottom:16px;font-weight:500;min-height:40px;display:flex;align-items:center;}
+    .upload-status--info{background:#eef1f9;color:var(--blauw);}
+    .upload-status--succes{background:#e8f4ec;color:var(--groen);}
+    .upload-status--fout{background:#fbeaea;color:var(--rood);}
+    .upload-status--waarschuwing{background:#fff8ec;color:var(--goud);}
+    .knop-rij{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
+    .knop{padding:9px 18px;border-radius:8px;font-family:'Outfit',sans-serif;font-size:0.88rem;font-weight:600;cursor:pointer;border:2px solid transparent;transition:background 0.15s,border-color 0.15s,opacity 0.15s;}
+    .knop:disabled{opacity:0.4;cursor:not-allowed;}
+    .knop-primair{background:var(--blauw);color:#fff;}
+    .knop-primair:not(:disabled):hover{background:var(--blauw-licht);}
+    .knop-secundair{background:var(--achtergrond);color:var(--blauw);border-color:var(--grijs-mid);}
+    .knop-secundair:not(:disabled):hover{background:var(--grijs-licht);}
+    .knop-groen{background:var(--groen);color:#fff;}
+    .knop-groen:not(:disabled):hover{background:#155f39;}
+    .knop-gevaar-klein{padding:5px 12px;border-radius:7px;font-family:'Outfit',sans-serif;font-size:0.78rem;font-weight:600;cursor:pointer;border:1.5px solid rgba(181,42,42,0.3);background:rgba(181,42,42,0.08);color:var(--rood);transition:background 0.15s;}
+    .knop-gevaar-klein:hover{background:rgba(181,42,42,0.18);}
+    .knop-wissen{background:var(--achtergrond);color:var(--rood);border:2px solid rgba(181,42,42,0.3);margin-left:auto;}
+    .knop-wissen:hover{background:rgba(181,42,42,0.06);}
+    #upload-lader{display:none;align-items:center;gap:10px;font-size:0.85rem;color:var(--tekst-mid);padding:10px 0;}
+    .lader-cirkel{width:18px;height:18px;border:2px solid var(--grijs-mid);border-top-color:var(--blauw);border-radius:50%;animation:draaien 0.7s linear infinite;}
+    @keyframes draaien{to{transform:rotate(360deg);}}
+    #upload-teller{font-size:0.82rem;font-weight:700;color:var(--groen);background:#e8f4ec;padding:3px 12px;border-radius:20px;}
+    .upload-zoek-wrap{margin-bottom:12px;}
+    .upload-zoek{width:100%;padding:9px 14px;border:1.5px solid var(--grijs-mid);border-radius:8px;font-family:'Outfit',sans-serif;font-size:0.88rem;color:var(--tekst);background:#fff;outline:none;transition:border-color 0.15s;}
+    .upload-zoek:focus{border-color:var(--blauw);}
+    .upload-artikel{border:1px solid var(--grijs-licht);border-radius:8px;padding:14px 16px;margin-bottom:10px;background:#fafafa;transition:background 0.15s;}
+    .upload-artikel:hover{background:#f0f2f8;}
+    .upload-artikel-kop{display:flex;align-items:baseline;gap:12px;margin-bottom:6px;}
+    .upload-artikel-nr{font-size:0.82rem;font-weight:700;background:var(--blauw);color:#fff;padding:2px 10px;border-radius:20px;white-space:nowrap;}
+    .upload-artikel-titel{font-size:0.9rem;font-weight:600;color:var(--tekst);}
+    .upload-artikel-preview{font-size:0.83rem;color:var(--tekst-mid);line-height:1.6;white-space:pre-wrap;}
+    .upload-leeg{text-align:center;color:var(--zilver);font-size:0.88rem;padding:32px 20px;line-height:1.7;}
+    .geladen-item{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border:1px solid var(--grijs-licht);border-radius:8px;margin-bottom:8px;background:#fafafa;}
+    .geladen-item-info{display:flex;flex-direction:column;gap:5px;}
+    .geladen-naam{font-size:0.88rem;font-weight:600;color:var(--tekst);}
+    .geladen-meta{display:flex;gap:6px;align-items:center;flex-wrap:wrap;}
+    .geladen-badge{padding:2px 8px;border-radius:4px;font-size:0.72rem;font-weight:700;color:#fff;}
+    .geladen-type{font-size:0.75rem;color:var(--zilver);}
 
-  <!-- Upload kaart -->
-  <div class="kaart">
-    <div class="kaart-header">
-      <div class="kaart-titel"><div class="sectie-badge badge-upload">UPLOAD</div>Bestand kiezen en analyseren</div>
-    </div>
-    <div class="kaart-inhoud">
-      <div class="upload-zone" id="upload-zone">
-        <input type="file" id="upload-bestand" accept=".txt,.md,.pdf,.docx">
-        <div class="upload-icoon">&#128196;</div>
-        <div class="upload-tekst">Klik hier of sleep een bestand naar dit vak</div>
-        <div class="upload-types">.txt &middot; .md &middot; .pdf &middot; .docx</div>
-      </div>
-      <div class="upload-status upload-status--info" id="upload-status">Kies een bestand of gebruik de testdata hieronder.</div>
-      <div id="upload-lader"><div class="lader-cirkel"></div><span>Bestand wordt verwerkt&hellip;</span></div>
-      <div class="knop-rij">
-        <button class="knop knop-primair" id="btn-analyseer" disabled>Analyseer bestand</button>
-        <button class="knop knop-secundair" id="btn-testdata">Laad testdata</button>
-        <button class="knop knop-groen" id="btn-download" disabled>Download JSON</button>
-        <button class="knop knop-secundair knop-wissen" id="btn-alles-wissen">Alles wissen</button>
-      </div>
-    </div>
-  </div>
+    /* ===== NIEUWE STRUCTUURNAVIGATIE STIJLEN ===== */
 
-  <!-- Geladen bestanden kaart -->
-  <div class="kaart">
-    <div class="kaart-header">
-      <div class="kaart-titel"><div class="sectie-badge badge-geladen">GELADEN</div>Geladen bestanden</div>
-    </div>
-    <div class="kaart-inhoud">
-      <div id="geladen-lijst">
-        <div class="upload-leeg" style="padding:12px 0;">Geen bestanden geladen.</div>
-      </div>
-    </div>
-  </div>
+    /* Breadcrumb */
+    .nav-breadcrumb{display:flex;align-items:center;gap:6px;font-size:0.82rem;color:var(--tekst-mid);padding:12px 0 16px;flex-wrap:wrap;}
+    .nav-breadcrumb-item{color:var(--blauw);cursor:pointer;font-weight:600;padding:2px 6px;border-radius:5px;transition:background 0.15s;}
+    .nav-breadcrumb-item:hover{background:#e4e8f5;}
+    .nav-breadcrumb-item.actief{color:var(--tekst);cursor:default;font-weight:700;}
+    .nav-breadcrumb-item.actief:hover{background:transparent;}
+    .nav-breadcrumb-sep{color:var(--grijs-mid);font-size:0.9rem;font-weight:300;}
 
-  <!-- Resultaten kaart -->
-  <div class="kaart">
-    <div class="kaart-header">
-      <div class="kaart-titel"><div class="sectie-badge badge-resultaat">RESULTAAT</div>Gevonden artikelen</div>
-      <span id="upload-teller"></span>
-    </div>
-    <div class="kaart-inhoud">
-      <div id="upload-stats"></div>
-      <div class="upload-zoek-wrap">
-        <input class="upload-zoek" id="upload-zoek" type="text" placeholder="Zoek op artikelnummer, titel of inhoud&hellip;">
-      </div>
-      <div id="upload-resultaten">
-        <div class="upload-leeg">Nog geen artikelen &mdash; analyseer een bestand of laad de testdata.</div>
-      </div>
-      <div id="upload-paginering"></div>
-    </div>
-  </div>
-</main>
-<script src="assets/js/parser.js?v=14"></script>
-<script src="assets/js/upload.js?v=14"></script>
-</body>
-</html>
+    /* Boekenraster */
+    .boeken-raster{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px;padding:4px 0 8px;}
+    .boek-kaart{background:linear-gradient(140deg,var(--blauw-card) 0%,#152558 100%);color:#fff;border-radius:12px;padding:22px 20px 18px;cursor:pointer;transition:transform 0.18s,box-shadow 0.18s;box-shadow:0 4px 16px rgba(26,42,94,0.18);position:relative;overflow:hidden;border:2px solid transparent;}
+    .boek-kaart::before{content:'';position:absolute;top:-30px;right:-30px;width:100px;height:100px;border-radius:50%;background:rgba(255,255,255,0.04);}
+    .boek-kaart:hover{transform:translateY(-3px);box-shadow:0 8px 28px rgba(26,42,94,0.28);}
+    .boek-kaart.actief{border-color:var(--goud);box-shadow:0 6px 24px rgba(176,112,0,0.25);}
+    .boek-kaart-nr{font-size:0.7rem;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;opacity:0.65;margin-bottom:6px;}
+    .boek-kaart-label{font-size:1.05rem;font-weight:700;line-height:1.3;margin-bottom:10px;}
+    .boek-kaart-meta{font-size:0.75rem;opacity:0.6;display:flex;gap:10px;}
+    .boek-kaart-meta span{background:rgba(255,255,255,0.1);padding:2px 8px;border-radius:10px;}
+
+    /* Hoofdstukken */
+    .hfst-sectie{margin-top:8px;}
+    .hfst-sectie-titel{font-size:0.78rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--tekst-mid);margin-bottom:10px;padding-bottom:6px;border-bottom:2px solid var(--grijs-licht);}
+    .hfst-lijst{display:flex;flex-direction:column;gap:6px;}
+    .hfst-item{background:#fff;border:1px solid var(--grijs-licht);border-radius:9px;overflow:hidden;transition:box-shadow 0.15s;}
+    .hfst-item:hover{box-shadow:0 2px 10px rgba(26,42,94,0.1);}
+    .hfst-item.actief{border-color:#9aaad8;box-shadow:0 2px 10px rgba(26,42,94,0.12);}
+    .hfst-kop{display:flex;align-items:center;gap:12px;padding:12px 16px;cursor:pointer;user-select:none;background:#fafbfd;}
+    .hfst-kop:hover{background:#f0f3fa;}
+    .hfst-nr-badge{background:var(--blauw);color:#fff;font-size:0.72rem;font-weight:700;padding:2px 9px;border-radius:5px;white-space:nowrap;}
+    .hfst-naam{font-size:0.9rem;font-weight:600;color:var(--tekst);flex:1;}
+    .hfst-meta{font-size:0.75rem;color:var(--zilver);}
+    .hfst-pijl{font-size:0.8rem;color:var(--zilver);transition:transform 0.2s;}
+    .hfst-item.actief .hfst-pijl{transform:rotate(90deg);}
+    .hfst-titels{display:none;padding:8px 14px 12px 14px;background:#f7f8fc;border-top:1px solid var(--grijs-licht);}
+    .hfst-item.actief .hfst-titels{display:block;}
+
+    /* Titels */
+    .titel-lijst{display:flex;flex-direction:column;gap:4px;}
+    .titel-item{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:7px;cursor:pointer;transition:background 0.15s;border:1px solid transparent;}
+    .titel-item:hover{background:#eaecf8;border-color:#c8d0ea;}
+    .titel-item.actief{background:#e0e6f5;border-color:#9aaad8;font-weight:700;}
+    .titel-nr{font-size:0.72rem;font-weight:700;color:var(--blauw-licht);min-width:48px;}
+    .titel-naam{font-size:0.85rem;color:var(--tekst);flex:1;}
+    .titel-art-teller{font-size:0.72rem;color:var(--zilver);background:#eee;padding:1px 7px;border-radius:10px;white-space:nowrap;}
+
+    /* Structuur wrapper layout */
+    .structuur-layout{display:grid;grid-template-columns:1fr;gap:0;}
+    .structuur-nav-paneel{margin-bottom:16px;}
+    .artikel-paneel{border-top:2px solid var(--grijs-licht);padding-top:16px;}
+
+    /* Leeg state structuur */
+    .structuur-leeg{text-align:center;padding:40px 20px;color:var(--zilver);}
+    .structuur-leeg-icoon{font-size:2.5rem;margin-bottom:12px;display:block;}
+    </style>
+  </head>
+  <body>
+    <header class="header">
+        <div class="header-logo"><div class="header-badge">JS</div>div>Legal Force</div>div>
+        <div class="header-titel">NIEUW WETBOEK VAN STRAFVORDERING</div>div>
+        <div class="header-tag">UPLOAD MODULE</div>div>
+    </header>header>
+    <main class="pagina">
+        <h1 class="paginatitel">Wetstekst uploaden</h1>h1>
+        <p class="paginasubtitel">Upload een bestand met wetstekst. Alle artikelen worden automatisch herkend en kunnen als JSON worden gedownload.</p>p>
+        <div class="info-box">
+              <strong>Fase 1 testomgeving.</strong> Formaten: <strong>.txt .md .pdf .docx</strong> &nbsp;&middot;&nbsp; Grote bestanden met honderden artikelen worden volledig verwerkt.
+        </div>div>
+    
+      <!-- Upload kaart -->
+      <div class="kaart">
+          <div class="kaart-header">
+                <div class="kaart-titel"><div class="sectie-badge badge-upload">UPLOAD</div>div>Bestand kiezen en analyseren</div>div>
+          </div>div>
+          <div class="kaart-inhoud">
+                <div class="upload-zone" id="upload-zone">
+                        <input type="file" id="upload-bestand" accept=".txt,.md,.pdf,.docx">
+                        <div class="upload-icoon">&#128196;</div>div>
+                        <div class="upload-tekst">Klik hier of sleep een bestand naar dit vak</div>div>
+                        <div class="upload-types">.txt &middot; .md &middot; .pdf &middot; .docx</div>div>
+                </div>div>
+                <div class="upload-status upload-status--info" id="upload-status">Kies een bestand of gebruik de testdata hieronder.</div>div>
+                <div id="upload-lader"><div class="lader-cirkel"></div>div><span>Bestand wordt verwerkt&hellip;</span></div>div>
+                <div class="knop-rij">
+                        <button class="knop knop-primair" id="btn-analyseer" disabled>Analyseer bestand</button>button>
+                        <button class="knop knop-secundair" id="btn-testdata">Laad testdata</button>button>
+                        <button class="knop knop-groen" id="btn-download" disabled>Download JSON</button>button>
+                        <button class="knop knop-secundair knop-wissen" id="btn-alles-wissen">Alles wissen</button>button>
+                </div>div>
+          </div>div>
+      </div>div>
+    
+      <!-- Geladen bestanden kaart -->
+      <div class="kaart">
+          <div class="kaart-header">
+                <div class="kaart-titel"><div class="sectie-badge badge-geladen">GELADEN</div>div>Geladen bestanden</div>div>
+          </div>div>
+          <div class="kaart-inhoud">
+                <div id="geladen-lijst">
+                        <div class="upload-leeg" style="padding:12px 0;">Geen bestanden geladen.</div>div>
+                </div>div>
+          </div>div>
+      </div>div>
+    
+      <!-- Structuur + Resultaten kaart -->
+      <div class="kaart">
+          <div class="kaart-header">
+                <div class="kaart-titel"><div class="sectie-badge badge-structuur">STRUCTUUR</div>div>Wetboek van Strafvordering</div>div>
+                <span id="upload-teller"></span>
+          </div>div>
+          <div class="kaart-inhoud">
+                <!-- Breadcrumb -->
+                <div id="nav-breadcrumb" style="display:none;" class="nav-breadcrumb"></div>div>
+                <!-- Structuurboom (boeken/hoofdstukken/titels) -->
+                <div id="upload-structuur"></div>div>
+                <!-- Stats -->
+                <div id="upload-stats"></div>div>
+                <!-- Zoekbalk -->
+                <div class="upload-zoek-wrap" id="zoek-wrap" style="display:none;">
+                        <input class="upload-zoek" id="upload-zoek" type="text" placeholder="Zoek op artikelnummer, titel of inhoud&hellip;">
+                </div>div>
+                <!-- Artikelen -->
+                <div id="upload-resultaten" class="artikel-paneel" style="display:none;">
+                        <div class="upload-leeg">Nog geen artikelen &mdash; analyseer een bestand of laad de testdata.</div>div>
+                </div>div>
+                <div id="upload-paginering"></div>div>
+          </div>div>
+      </div>div>
+    </main>main>
+  <script src="assets/js/parser.js?v=15"></script>
+  <script src="assets/js/upload.js?v=15"></script>
+  </body>
+</html>html></span></strong></strong>
+  </body>
+  </style></title>
+  </head>
